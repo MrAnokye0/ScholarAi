@@ -1,0 +1,21 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment & secrets
+scholarai/.env
+*.env
+
+# Database
+scholarai/data/scholarai.db
+
+# VS Code
+.vscode/
+
+# Virtual environments
+.venv/
+venv/
+
+# Misc
+*.txt.bak
