@@ -770,194 +770,112 @@ if not st.session_state.user_authenticated:
             </div>
             """, unsafe_allow_html=True)
 
-        # ── Signup ──────────────────────────────────────────────────
+        # ── Signup — pure native Streamlit ────────────────────────
         if st.session_state.auth_mode == "signup":
-            # Hide Streamlit chrome for full-page signup layout
-            st.markdown("""
-            <style>
+            st.markdown("""<style>
             [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
             .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-            .stApp{background:#f8fafc!important}
-            .main .block-container{padding:0!important;margin:0!important;max-width:100%!important;width:100%!important}
-            .main{padding:0!important}
-            section.main>div{padding:0!important}
-            div[data-testid="stButton"],div[data-testid="stTextInput"]{position:fixed!important;left:-9999px!important;top:-9999px!important;opacity:0!important;height:0!important;overflow:hidden!important}
-            </style>
+            .stApp{background:#0B0F19!important}
+            .main .block-container{
+                padding:2rem 1rem!important;
+                max-width:460px!important;
+                margin:0 auto!important;
+            }
+            div[data-testid="stTextInput"] input{
+                background:rgba(255,255,255,.05)!important;
+                border:1.5px solid rgba(255,255,255,.1)!important;
+                border-radius:10px!important;color:#F8FAFC!important;
+                font-size:.93rem!important;
+            }
+            div[data-testid="stTextInput"] input:focus{
+                border-color:#4361EE!important;
+                box-shadow:0 0 0 3px rgba(67,97,238,.15)!important;
+            }
+            div[data-testid="stTextInput"] label{color:#94A3B8!important;font-size:.8rem!important;font-weight:600!important}
+            div.stButton>button[kind="primary"]{
+                background:linear-gradient(135deg,#4361EE,#7209B7)!important;
+                border:none!important;border-radius:11px!important;
+                font-weight:800!important;font-size:.95rem!important;
+                box-shadow:0 6px 18px rgba(67,97,238,.35)!important;
+            }
+            div.stButton>button{
+                background:transparent!important;
+                border:1px solid rgba(255,255,255,.1)!important;
+                color:#94A3B8!important;border-radius:11px!important;
+            }
+            p,label,.stMarkdown{color:#F8FAFC!important}
+            h1,h2,h3{color:#F8FAFC!important}
+            </style>""", unsafe_allow_html=True)
+
+            # Header
+            st.markdown("""
+            <div style='text-align:center;margin-bottom:1.5rem;margin-top:1rem'>
+              <div style='width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,#4361EE,#7209B7);
+                          display:flex;align-items:center;justify-content:center;margin:0 auto 12px;
+                          box-shadow:0 0 22px rgba(67,97,238,.5)'>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
+                     stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                  <path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/>
+                </svg>
+              </div>
+              <h2 style='color:#F8FAFC;font-size:1.5rem;font-weight:800;margin-bottom:4px'>Create your Account</h2>
+              <p style='color:#64748B;font-size:.87rem'>Start generating literature reviews for free.</p>
+            </div>
             """, unsafe_allow_html=True)
 
-            # Hidden bridge inputs & buttons
-            u_name  = st.text_input("SU_USERNAME",  key="su_username",  label_visibility="collapsed")
-            u_email = st.text_input("SU_EMAIL",     key="su_email",     label_visibility="collapsed")
-            u_pass  = st.text_input("SU_PASSWORD",  key="su_password",  type="password", label_visibility="collapsed")
-            su_submit  = st.button("SU_SUBMIT",  key="su_submit_btn")
-            su_login   = st.button("SU_LOGIN",   key="su_login_btn")
-            su_home    = st.button("SU_HOME",    key="su_home_btn")
+            _su_err = st.session_state.get("su_error", "")
+            if _su_err:
+                st.error(_su_err)
+                st.session_state.su_error = ""
 
-            if su_submit:
-                if u_name and u_email and u_pass:
+            col1, col2 = st.columns(2)
+            with col1:
+                su_username = st.text_input("Username", placeholder="e.g. albert_e", key="su_username_n")
+            with col2:
+                su_display  = st.text_input("Display Name (optional)", placeholder="Albert Einstein", key="su_display_n")
+
+            su_email = st.text_input("Email Address", placeholder="xyz@university.edu", key="su_email_n")
+            su_pass  = st.text_input("Password", type="password",
+                                     placeholder="Choose a secure password (6-50 chars)", key="su_pass_n")
+
+            if st.button("Get Started →", key="su_submit_n", use_container_width=True, type="primary"):
+                if not su_username.strip() or not su_email.strip() or not su_pass:
+                    st.session_state.su_error = "Please fill in all required fields."
+                elif len(su_pass) < 6:
+                    st.session_state.su_error = "Password must be at least 6 characters."
+                else:
                     v_code = mailer.generate_6_digit_code()
-                    success, msg = db.create_user(u_name, u_email, u_pass, v_code)
+                    success, msg = db.create_user(su_username.strip(), su_email.strip(), su_pass, v_code)
                     if success:
                         import threading
-                        threading.Thread(target=mailer.send_verification_code, args=(u_email, v_code), daemon=True).start()
-                        st.session_state.auth_username = u_name
-                        st.session_state.auth_email = u_email
-                        st.session_state.auth_mode = "verify"
+                        threading.Thread(target=mailer.send_verification_code,
+                                         args=(su_email.strip(), v_code), daemon=True).start()
+                        st.session_state.auth_username = su_username.strip()
+                        st.session_state.auth_email    = su_email.strip()
+                        st.session_state.auth_mode     = "verify"
                         st.rerun()
                     else:
-                        st.error(f"❌ {msg}")
-                else:
-                    st.warning("⚠ Please fill in all fields.")
-
-            if su_login:
-                st.session_state.auth_mode = "login"
+                        st.session_state.su_error = msg
                 st.rerun()
 
-            if su_home:
-                st.session_state.show_home = True
-                st.rerun()
+            st.markdown("<div style='text-align:center;margin:12px 0;color:#475569;font-size:.72rem'>OR</div>",
+                        unsafe_allow_html=True)
 
-            components.html("""
-<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-html,body{height:100%;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px}
-.overlay{position:fixed;inset:0;z-index:9999;display:grid;grid-template-columns:42% 58%;background:#0B0F19;width:100vw;height:100vh}
+            c1, c2 = st.columns(2)
+            with c1:
+                if st.button("← Back to Home", key="su_home_n", use_container_width=True):
+                    st.session_state.show_home = True
+                    st.rerun()
+            with c2:
+                if st.button("Sign In", key="su_login_n", use_container_width=True):
+                    st.session_state.auth_mode = "login"
+                    st.rerun()
 
-/* ── LEFT ── */
-.left{background:linear-gradient(160deg,#0d1117 0%,#1a1040 55%,#0d1117 100%);display:flex;flex-direction:column;justify-content:center;padding:36px 40px;position:relative;overflow:hidden}
-.left::before{content:'';position:absolute;top:-150px;left:-150px;width:420px;height:420px;background:radial-gradient(circle,rgba(67,97,238,.25),transparent 65%);pointer-events:none}
-.left::after{content:'';position:absolute;bottom:-100px;right:-60px;width:300px;height:300px;background:radial-gradient(circle,rgba(114,9,183,.2),transparent 65%);pointer-events:none}
-.logo-row{display:flex;align-items:center;gap:9px;margin-bottom:28px;position:relative}
-.logo-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#4361EE,#7209B7);display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(67,97,238,.5)}
-.logo-text{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#F1F5F9}
-.tagline{font-family:'Syne',sans-serif;font-size:1.7rem;font-weight:800;color:#F1F5F9;line-height:1.15;letter-spacing:-.02em;margin-bottom:10px}
-.tagline span{background:linear-gradient(135deg,#818cf8,#c77dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.sub{font-size:.82rem;color:rgba(148,163,184,.85);line-height:1.6;max-width:280px;margin-bottom:22px}
-.feat{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:11px;padding:11px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
-.feat-icon{width:30px;height:30px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
-.fi-b{background:rgba(67,97,238,.2)}.fi-p{background:rgba(114,9,183,.2)}.fi-t{background:rgba(6,214,160,.15)}
-.feat-title{font-size:.78rem;font-weight:700;color:#F1F5F9;margin-bottom:1px}
-.feat-sub{font-size:.68rem;color:rgba(148,163,184,.7)}
+            st.markdown("<p style='text-align:center;font-size:.7rem;color:#334155;margin-top:10px'>"
+                        "By signing up you agree to our Terms of Use and Privacy Policy.</p>",
+                        unsafe_allow_html=True)
 
-/* ── RIGHT ── */
-.right{background:rgba(13,17,23,.97);border-left:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;justify-content:center;align-items:center;padding:28px 36px;overflow-y:auto}
-.right-inner{width:100%;max-width:360px}
-.back-lnk{display:inline-flex;align-items:center;gap:5px;font-size:.74rem;color:#64748B;cursor:pointer;margin-bottom:16px;transition:.2s;background:none;border:none;font-family:inherit;padding:0}
-.back-lnk:hover{color:#818cf8}
-.form-title{font-family:'Syne',sans-serif;font-size:1.3rem;font-weight:800;color:#F1F5F9;margin-bottom:4px}
-.form-sub{font-size:.82rem;color:#64748B;margin-bottom:18px}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:0;align-items:start}
-.fg{margin-bottom:11px;min-width:0}
-.fg label{display:block;font-size:.72rem;font-weight:600;color:#94A3B8;margin-bottom:4px;letter-spacing:.02em}
-.fg input{width:100%;padding:9px 11px;border:1.5px solid rgba(255,255,255,.1);border-radius:8px;font-size:.84rem;font-family:inherit;color:#F1F5F9;background:rgba(255,255,255,.05);transition:.2s;outline:none;min-width:0}
-.fg input:focus{border-color:#4361EE;background:rgba(67,97,238,.08);box-shadow:0 0 0 3px rgba(67,97,238,.12)}
-.fg input::placeholder{color:rgba(148,163,184,.4)}
-.pw{position:relative}
-.pw input{padding-right:36px}
-.eye{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#64748B;font-size:.85rem;user-select:none}
-.eye:hover{color:#94A3B8}
-.hint{font-size:.66rem;color:#475569;margin-top:3px}
-.sbtn{width:100%;padding:11px;border-radius:9px;border:none;cursor:pointer;background:linear-gradient(135deg,#4361EE,#7209B7);color:#fff;font-weight:700;font-size:.88rem;font-family:inherit;box-shadow:0 5px 16px rgba(67,97,238,.35);transition:.25s;margin-top:4px}
-.sbtn:hover{transform:translateY(-2px);box-shadow:0 8px 22px rgba(67,97,238,.45)}
-.terms{font-size:.66rem;color:#475569;margin-top:9px;line-height:1.5;text-align:center}
-.terms a{color:#4361EE;text-decoration:none}
-.divider{display:flex;align-items:center;gap:8px;margin:12px 0}
-.div-line{flex:1;height:1px;background:rgba(255,255,255,.08)}
-.div-txt{font-size:.66rem;color:#475569;font-weight:600}
-.signin-row{text-align:center;font-size:.8rem;color:#64748B}
-.signin-row a{color:#818cf8;font-weight:700;text-decoration:none;cursor:pointer}
-.footer{text-align:center;padding:10px;font-size:.66rem;color:#334155;border-top:1px solid rgba(255,255,255,.06);flex-shrink:0}
-.footer a{color:#334155;text-decoration:none;margin:0 5px}.footer a:hover{color:#818cf8}
-</style>
-</head>
-<body>
-<div class="overlay">
-  <!-- LEFT -->
-  <div class="left">
-    <div class="logo-row">
-      <div class="logo-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/></svg></div>
-      <span class="logo-text">ScholarAI</span>
-    </div>
-    <h1 class="tagline">Research smarter,<br/><span>not harder.</span></h1>
-    <p class="sub">The AI-powered platform that turns your academic sources into a fully-cited literature review in seconds.</p>
-    <div class="feat"><div class="feat-icon fi-b">📄</div><div><div class="feat-title">Upload your PDFs</div><div class="feat-sub">Up to 30 academic sources</div></div></div>
-    <div class="feat"><div class="feat-icon fi-p">✨</div><div><div class="feat-title">AI synthesizes your review</div><div class="feat-sub">Gemini &amp; GPT-4o powered</div></div></div>
-    <div class="feat"><div class="feat-icon fi-t">📥</div><div><div class="feat-title">Export &amp; submit</div><div class="feat-sub">PDF, DOCX — citation-ready</div></div></div>
-  </div>
-
-  <!-- RIGHT -->
-  <div class="right">
-    <div class="right-inner">
-      <button class="back-lnk" id="back-home-link">← Back to Home</button>
-      <div class="form-title">Create your Account</div>
-      <div class="form-sub">Start generating literature reviews for free.</div>
-      <div class="frow">
-        <div class="fg"><label>Username</label><input type="text" id="f-username" placeholder="e.g. albert_e" autocomplete="username"/></div>
-        <div class="fg"><label>Display Name <span style="color:#475569;font-weight:400">(optional)</span></label><input type="text" id="f-display" placeholder="Albert Einstein"/></div>
-      </div>
-      <div class="fg"><label>Email Address</label><input type="email" id="f-email" placeholder="xyz@university.edu" autocomplete="email"/></div>
-      <div class="fg"><label>Password</label>
-        <div class="pw"><input type="password" id="f-pass" placeholder="Choose a secure password" autocomplete="new-password"/><span class="eye" id="eye-toggle">👁</span></div>
-        <div class="hint">Password should be 6–50 characters long</div>
-      </div>
-      <button class="sbtn" id="submit-btn">Get Started →</button>
-      <p class="terms">By clicking "Get Started", you agree to our <a href="#">Terms of Use</a> and <a href="#">Privacy Policy</a>.</p>
-      <div class="divider"><div class="div-line"></div><div class="div-txt">OR</div><div class="div-line"></div></div>
-      <div class="signin-row">Already have an account? <a id="signin-link">Sign in</a></div>
-    </div>
-    <div class="footer">ScholarAI &copy; 2026 &nbsp;·&nbsp;<a href="#">Privacy</a><a href="#">Terms</a></div>
-  </div>
-</div>
-<script>
-(function(){
-  document.getElementById('eye-toggle').onclick=function(){
-    var p=document.getElementById('f-pass');
-    p.type=p.type==='password'?'text':'password';
-    this.textContent=p.type==='password'?'👁':'🙈';
-  };
-  function trigger(lbl,fields){
-    var p=window.parent.document,ins=p.querySelectorAll('input'),btns=p.querySelectorAll('button');
-    if(fields){
-      for(var i=0;i<ins.length;i++){
-        var w=ins[i].closest('[data-testid="stTextInput"]');if(!w)continue;
-        var l=w.querySelector('label');if(!l)continue;
-        if(fields.username!==undefined&&l.textContent.includes('SU_USERNAME')){ins[i].value=fields.username;ins[i].dispatchEvent(new Event('input',{bubbles:true}));}
-        if(fields.email!==undefined&&l.textContent.includes('SU_EMAIL')){ins[i].value=fields.email;ins[i].dispatchEvent(new Event('input',{bubbles:true}));}
-        if(fields.password!==undefined&&l.textContent.includes('SU_PASSWORD')){ins[i].value=fields.password;ins[i].dispatchEvent(new Event('input',{bubbles:true}));}
-      }
-    }
-    setTimeout(function(){
-      for(var b=0;b<btns.length;b++){
-        var pEl=btns[b].querySelector('p');
-        var txt=pEl?pEl.textContent.trim():btns[b].innerText.trim();
-        if(txt===lbl){btns[b].click();break;}
-      }
-    },180);
-  }
-  document.getElementById('submit-btn').onclick=function(){
-    var u=document.getElementById('f-username').value.trim();
-    var e=document.getElementById('f-email').value.trim();
-    var pw=document.getElementById('f-pass').value;
-    if(!u||!e||!pw){alert('Please fill in all required fields.');return;}
-    trigger('SU_SUBMIT',{username:u,email:e,password:pw});
-  };
-  document.getElementById('signin-link').onclick=function(ev){ev.preventDefault();trigger('SU_LOGIN');};
-  document.getElementById('back-home-link').onclick=function(){
-    var btns = window.parent.document.querySelectorAll('button');
-    for(var b=0;b<btns.length;b++){
-      if(btns[b].innerText.trim()==='SU_HOME'){ btns[b].click(); return; }
-    }
-    // fallback: URL navigation
-    window.top.location.href = window.top.location.pathname + '?auth_back=1';
-  };
-})();
-</script>
-</body></html>
-
-""", height=900, scrolling=False)
 
         # ── Verification ───────────────────────────────────────────
         elif st.session_state.auth_mode == "verify":
