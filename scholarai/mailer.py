@@ -66,15 +66,26 @@ def send_email(subject, recipient, body_html):
 
 def send_verification_code(email, code):
     """Sends a 6-digit verification code to the user (non-blocking)."""
-    subject = "Verify Your ScholarAI Account"
+    subject = "ScholarAI — Verify Your Account"
     html = f"""
-    <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-        <h2 style="color: #4361EE; text-align: center;">Welcome to ScholarAI!</h2>
-        <p>Thank you for signing up. Please use the following 6-digit code to verify your account:</p>
-        <div style="background: #f4f7fe; padding: 20px; text-align: center; font-size: 24px; font-weight: bold; letter-spacing: 5px; color: #4361EE; border-radius: 8px;">
-            {code}
+    <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:auto;background:#0B0F19;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">
+      <div style="background:linear-gradient(135deg,#4361EE,#7209B7);padding:32px;text-align:center">
+        <h1 style="color:#fff;margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em">🎓 ScholarAI</h1>
+        <p style="color:rgba(255,255,255,.8);margin:6px 0 0;font-size:.9rem">Email Verification</p>
+      </div>
+      <div style="padding:36px 32px;background:#0d1117">
+        <p style="color:#E2E8F0;font-size:1rem;margin-bottom:8px">Welcome to ScholarAI!</p>
+        <p style="color:#94A3B8;font-size:.9rem;line-height:1.6;margin-bottom:28px">
+          Use the code below to verify your account. It expires in 10 minutes.
+        </p>
+        <div style="background:rgba(67,97,238,.12);border:1px solid rgba(67,97,238,.3);border-radius:12px;padding:24px;text-align:center;margin-bottom:28px">
+          <div style="font-size:2.2rem;font-weight:900;letter-spacing:.3em;color:#818cf8;font-family:monospace">{code}</div>
         </div>
-        <p style="font-size: 12px; color: #666; margin-top: 20px;">If you did not create an account, please ignore this email.</p>
+        <p style="color:#475569;font-size:.8rem;text-align:center">If you didn't create an account, you can safely ignore this email.</p>
+      </div>
+      <div style="background:#0B0F19;padding:16px;text-align:center;border-top:1px solid rgba(255,255,255,.06)">
+        <p style="color:#334155;font-size:.75rem;margin:0">© 2026 ScholarAI · AI-Powered Literature Reviews</p>
+      </div>
     </div>
     """
     threading.Thread(target=send_email, args=(subject, email, html), daemon=True).start()
@@ -82,22 +93,26 @@ def send_verification_code(email, code):
 
 def send_password_reset(email, code):
     """Sends a password reset code to the user (non-blocking)."""
-    subject = "Reset Your ScholarAI Password"
+    subject = "ScholarAI — Reset Your Password"
     html = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <div style="background-color: #4361EE; padding: 20px; text-align: center; border-radius: 8px;">
-            <h1 style="color: white; margin: 0;">ScholarAI</h1>
-            <p style="color: white; margin: 5px 0 0;">Password Reset Request</p>
+    <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:auto;background:#0B0F19;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">
+      <div style="background:linear-gradient(135deg,#4361EE,#7209B7);padding:32px;text-align:center">
+        <h1 style="color:#fff;margin:0;font-size:1.6rem;font-weight:800;letter-spacing:-.02em">🎓 ScholarAI</h1>
+        <p style="color:rgba(255,255,255,.8);margin:6px 0 0;font-size:.9rem">Password Reset Request</p>
+      </div>
+      <div style="padding:36px 32px;background:#0d1117">
+        <p style="color:#E2E8F0;font-size:1rem;margin-bottom:8px">Hello,</p>
+        <p style="color:#94A3B8;font-size:.9rem;line-height:1.6;margin-bottom:28px">
+          Use the code below to reset your ScholarAI password. It expires in 15 minutes.
+        </p>
+        <div style="background:rgba(67,97,238,.12);border:1px solid rgba(67,97,238,.3);border-radius:12px;padding:24px;text-align:center;margin-bottom:28px">
+          <div style="font-size:2.2rem;font-weight:900;letter-spacing:.3em;color:#818cf8;font-family:monospace">{code}</div>
         </div>
-        <div style="background-color: white; padding: 30px; border-radius: 0 0 8px 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <p style="color: #333; font-size: 16px;">Hello,</p>
-            <p style="color: #333; font-size: 16px;">Use the following code to reset your ScholarAI password:</p>
-            <div style="background: #f4f7fe; padding: 20px; text-align: center; font-size: 28px; font-weight: bold; letter-spacing: 8px; color: #4361EE; border-radius: 8px; margin: 20px 0;">
-                {code}
-            </div>
-            <p style="color: #666; font-size: 14px;">This code expires in 15 minutes. If you didn't request this, ignore this email.</p>
-            <p style="color: #666; font-size: 14px;">Best regards,<br>The ScholarAI Team</p>
-        </div>
+        <p style="color:#475569;font-size:.8rem;text-align:center">If you didn't request this, you can safely ignore this email.</p>
+      </div>
+      <div style="background:#0B0F19;padding:16px;text-align:center;border-top:1px solid rgba(255,255,255,.06)">
+        <p style="color:#334155;font-size:.75rem;margin:0">© 2026 ScholarAI · AI-Powered Literature Reviews</p>
+      </div>
     </div>
     """
     threading.Thread(target=send_email, args=(subject, email, html), daemon=True).start()

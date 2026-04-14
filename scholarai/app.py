@@ -1151,7 +1151,13 @@ if not st.session_state.user_authenticated:
                         st.session_state.auth_email = user["email"]
                         st.session_state.auth_username = user["username"]
                         st.session_state.auth_mode = "verify"
-                        st.warning("⚠ Your account is not verified. Check your email for the code.")
+                        # Auto-resend verification code so user gets it immediately
+                        v_code = mailer.generate_6_digit_code()
+                        db.update_verification_code(user["email"], v_code)
+                        import threading
+                        threading.Thread(target=mailer.send_verification_code,
+                                         args=(user["email"], v_code), daemon=True).start()
+                        st.session_state.last_code_sent_at = time.time()
                         st.rerun()
                 else:
                     st.error("❌ Invalid login credentials.")

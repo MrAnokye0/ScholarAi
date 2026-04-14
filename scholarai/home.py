@@ -16,6 +16,10 @@ def render_home():
 .main .block-container{padding:0!important;margin:0!important;max-width:100%!important;width:100%!important}
 .main{padding:0!important}
 section.main>div{padding:0!important}
+/* Remove Streamlit default top padding/margin that causes white space */
+.stApp > header{display:none!important}
+.stApp{overflow-x:hidden!important}
+iframe{border:none!important}
 </style>""", unsafe_allow_html=True)
 
     # ── CANVAS BACKGROUND + NAV + HERO ──────────────────────────────
@@ -62,6 +66,11 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
 }
 .xnav-links a:hover{color:var(--wh);background:rgba(255,255,255,0.06)}
 .xnav-right{display:flex;align-items:center;gap:10px}
+@media(max-width:768px){
+  .xnav{padding:0 20px!important}
+  .xnav-links{display:none!important}
+  .xnav-signin{display:none!important}
+}
 .xnav-signin{
   color:var(--mu2);text-decoration:none;font-size:0.875rem;font-weight:500;
   padding:8px 18px;border-radius:8px;border:1px solid var(--border);
@@ -413,6 +422,7 @@ a:hover{text-decoration:none !important}
     st.markdown("""
 <style>
 .xhow-outer{max-width:1200px;margin:0 auto;padding:0 48px 100px;position:relative;z-index:1}
+@media(max-width:768px){.xhow-outer{padding:0 20px 60px!important}}
 .xhow-box{
   background:rgba(255,255,255,0.025);border:1px solid var(--border);
   border-radius:24px;padding:72px 56px;position:relative;overflow:hidden;
@@ -555,6 +565,7 @@ a:hover{text-decoration:none !important}
     st.markdown("""
 <style>
 .xpwrap{max-width:1200px;margin:0 auto;padding:0 48px 100px;position:relative;z-index:1}
+@media(max-width:768px){.xpwrap{padding:0 20px 60px!important}}
 .xpgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:56px;align-items:start}
 @media(max-width:860px){.xpgrid{grid-template-columns:1fr;max-width:380px;margin-left:auto;margin-right:auto}}
 

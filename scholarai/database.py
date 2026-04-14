@@ -126,6 +126,11 @@ def update_user_verification(username: str, is_verified: bool = True) -> None:
     with get_conn() as conn:
         conn.execute("UPDATE users SET is_verified = ? WHERE username = ?", (1 if is_verified else 0, username))
 
+def update_verification_code(email: str, code: str) -> None:
+    """Update the verification code for a user."""
+    with get_conn() as conn:
+        conn.execute("UPDATE users SET verification_code = ? WHERE email = ?", (code, email))
+
 def update_reset_token(email: str, token: str | None) -> None:
     """Set or clear a password reset token for a user."""
     with get_conn() as conn:
