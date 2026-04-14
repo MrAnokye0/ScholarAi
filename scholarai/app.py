@@ -1197,232 +1197,67 @@ html,body{height:100%;overflow:hidden;font-family:'Plus Jakarta Sans',sans-serif
                                 st.session_state.pr_error = "No account found with that email."
                         st.rerun()
 
-            # ── OTP STEP — Premium glassmorphism card ──────────────
+            # ── OTP STEP — Native Streamlit (fast & reliable) ─────
             elif _step == "otp":
                 COOLDOWN = 120
                 _last = st.session_state.get("last_code_sent_at", 0)
                 _rem  = max(0, int(COOLDOWN - (time.time() - _last))) if _last else 0
                 em = st.session_state.get("auth_email", "")
                 _otp_err = st.session_state.get("pr_error", "")
-                _mm = str(_rem // 60).zfill(2)
-                _ss = str(_rem % 60).zfill(2)
-                _err_html = f'<div class="err-box" id="err-box">⚠ {_otp_err}</div>' if _otp_err else '<div class="err-box" id="err-box" style="display:none"></div>'
 
-                components.html(f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-:root{{--p:#4361EE;--p2:#7209B7;--s:#10B981;--tx:#F8FAFC;--mu:#94A3B8}}
-html,body{{font-family:'Plus Jakarta Sans',sans-serif;background:transparent;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}}
+                # Mask email for display
+                try:
+                    _at = em.index("@")
+                    _masked = em[:2] + "*" * (_at - 2) + em[_at:]
+                except Exception:
+                    _masked = em
 
-/* Animated background orbs */
-.orb{{position:fixed;border-radius:50%;filter:blur(80px);pointer-events:none;animation:drift 12s ease-in-out infinite}}
-.orb1{{width:400px;height:400px;background:rgba(67,97,238,.18);top:-100px;left:-100px;animation-delay:0s}}
-.orb2{{width:300px;height:300px;background:rgba(114,9,183,.15);bottom:-80px;right:-80px;animation-delay:-4s}}
-.orb3{{width:200px;height:200px;background:rgba(16,185,129,.1);top:50%;left:50%;animation-delay:-8s}}
-@keyframes drift{{0%,100%{{transform:translate(0,0) scale(1)}}33%{{transform:translate(30px,-20px) scale(1.05)}}66%{{transform:translate(-20px,30px) scale(.95)}}}}
+                st.markdown(f"""
+                <div style='text-align:center;margin-bottom:1rem'>
+                  <div style='font-size:2.5rem;margin-bottom:.5rem'>🔐</div>
+                  <h3 style='color:#F8FAFC;margin-bottom:.3rem'>Verify Code</h3>
+                  <p style='color:#94A3B8;font-size:.88rem'>Code sent to <strong style='color:#818cf8'>{_masked}</strong></p>
+                </div>""", unsafe_allow_html=True)
 
-/* Card */
-.card{{
-  position:relative;z-index:10;
-  background:rgba(255,255,255,.05);
-  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.12);
-  border-radius:28px;padding:44px 40px;width:480px;max-width:calc(100vw - 32px);
-  box-shadow:0 0 60px rgba(67,97,238,.15),0 32px 64px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.1);
-  animation:slideUp .5s cubic-bezier(.16,1,.3,1) both;
-}}
-@keyframes slideUp{{from{{opacity:0;transform:translateY(28px) scale(.97)}}to{{opacity:1;transform:none}}}}
+                if _otp_err:
+                    st.error(f"⚠ {_otp_err}")
+                    st.session_state.pr_error = ""
 
-/* Stepper */
-.stepper{{display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:36px}}
-.si{{display:flex;flex-direction:column;align-items:center;gap:5px}}
-.sc{{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;transition:.3s}}
-.sc.active{{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;box-shadow:0 0 20px rgba(67,97,238,.6),0 0 40px rgba(67,97,238,.2)}}
-.sc.idle{{background:rgba(255,255,255,.07);color:var(--mu);border:1px solid rgba(255,255,255,.1)}}
-.sl{{font-size:.62rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase}}
-.sl.active{{color:#818cf8}}.sl.idle{{color:var(--mu)}}
-.conn{{width:48px;height:2px;background:rgba(255,255,255,.1);margin:0 4px;margin-bottom:22px}}
+                otp_in = st.text_input("Enter 6-digit code", placeholder="e.g. 123456",
+                                       max_chars=6, key="pr_otp_direct",
+                                       label_visibility="visible")
 
-/* Header */
-.logo{{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 20px;box-shadow:0 0 28px rgba(67,97,238,.5)}}
-h1{{font-size:1.7rem;font-weight:800;text-align:center;margin-bottom:6px;background:linear-gradient(135deg,#818cf8,#c77dff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}}
-.sub{{color:var(--mu);font-size:.88rem;text-align:center;margin-bottom:32px;line-height:1.5}}
-.sub strong{{color:#818cf8;font-weight:600}}
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("← Back", key="pr_back_otp", use_container_width=True):
+                        st.session_state.reset_step = "email"
+                        st.rerun()
+                with c2:
+                    if st.button("Verify Code →", key="pr_verify_otp",
+                                 use_container_width=True, type="primary"):
+                        code = otp_in.strip()
+                        user = db.get_user_by_email(em)
+                        stored = user.get("reset_token", "") if user else ""
+                        if user and stored and code == stored:
+                            st.session_state.reset_step = "password"
+                            st.session_state.pr_error = ""
+                        else:
+                            st.session_state.pr_error = "Invalid code. Please try again."
+                        st.rerun()
 
-/* OTP boxes */
-.otp-row{{display:flex;gap:10px;justify-content:center;margin-bottom:10px}}
-.ob{{
-  width:58px;height:68px;border-radius:14px;
-  border:2px solid rgba(255,255,255,.1);
-  background:rgba(255,255,255,.04);
-  color:#818cf8;font-weight:800;font-size:1.5rem;
-  text-align:center;outline:none;
-  transition:all .2s cubic-bezier(.16,1,.3,1);
-  caret-color:var(--p);font-family:inherit;
-  animation:boxIn .4s cubic-bezier(.16,1,.3,1) both;
-}}
-.ob:nth-child(1){{animation-delay:.05s}}.ob:nth-child(2){{animation-delay:.1s}}
-.ob:nth-child(3){{animation-delay:.15s}}.ob:nth-child(4){{animation-delay:.2s}}
-.ob:nth-child(5){{animation-delay:.25s}}.ob:nth-child(6){{animation-delay:.3s}}
-@keyframes boxIn{{from{{opacity:0;transform:translateY(12px) scale(.9)}}to{{opacity:1;transform:none}}}}
-.ob:focus{{
-  border-color:var(--p);
-  background:rgba(67,97,238,.12);
-  box-shadow:0 0 0 3px rgba(67,97,238,.2),0 0 20px rgba(67,97,238,.3);
-  transform:scale(1.06);
-}}
-.ob.filled{{border-color:rgba(129,140,248,.5);background:rgba(67,97,238,.1)}}
-.ob.filled:not(:focus){{transform:scale(1.02)}}
+                if _rem > 0:
+                    st.caption(f"⏱ Resend available in {_rem // 60:02d}:{_rem % 60:02d}")
+                else:
+                    if st.button("📧 Resend Code", key="pr_resend_otp", use_container_width=True):
+                        r_code = mailer.generate_6_digit_code()
+                        db.update_reset_token(em, r_code)
+                        import threading
+                        threading.Thread(target=mailer.send_password_reset,
+                                         args=(em, r_code), daemon=True).start()
+                        st.session_state.last_code_sent_at = time.time()
+                        st.toast("✅ New code sent!")
+                        st.rerun()
 
-/* Error */
-.err-box{{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;padding:10px 14px;border-radius:10px;font-size:.82rem;margin-bottom:14px;text-align:center;animation:shake .4s ease}}
-@keyframes shake{{0%,100%{{transform:translateX(0)}}20%{{transform:translateX(-6px)}}40%{{transform:translateX(6px)}}60%{{transform:translateX(-4px)}}80%{{transform:translateX(4px)}}}}
-
-/* Resend */
-.resend{{text-align:center;font-size:.83rem;color:var(--mu);margin-bottom:20px;min-height:22px}}
-.resend-btn{{color:var(--p);font-weight:700;cursor:pointer;background:none;border:none;font-family:inherit;font-size:inherit;padding:0;transition:.2s;display:none}}
-.resend-btn:hover{{color:#818cf8;text-shadow:0 0 12px rgba(67,97,238,.5)}}
-
-/* Buttons */
-.btn-row{{display:grid;grid-template-columns:1fr 1fr;gap:12px}}
-.btn-ghost{{padding:13px;border-radius:12px;border:1px solid rgba(255,255,255,.12);background:transparent;color:var(--mu);font-weight:700;font-size:.9rem;font-family:inherit;cursor:pointer;transition:.25s}}
-.btn-ghost:hover{{border-color:rgba(255,255,255,.25);color:var(--tx);background:rgba(255,255,255,.05);box-shadow:0 0 16px rgba(255,255,255,.05)}}
-.btn-primary{{padding:13px;border-radius:12px;border:none;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-weight:800;font-size:.9rem;font-family:inherit;cursor:pointer;transition:.25s;position:relative;overflow:hidden;box-shadow:0 6px 20px rgba(67,97,238,.4)}}
-.btn-primary::before{{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.15),transparent);transition:.5s}}
-.btn-primary:hover{{transform:translateY(-2px);box-shadow:0 10px 30px rgba(67,97,238,.55)}}.btn-primary:hover::before{{left:100%}}
-.btn-primary:disabled{{opacity:.45;cursor:not-allowed;transform:none;box-shadow:none}}
-.spin{{display:inline-block;width:13px;height:13px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px}}
-@keyframes spin{{to{{transform:rotate(360deg)}}}}
-
-@media(max-width:480px){{
-  .card{{padding:32px 20px}}
-  .ob{{width:44px;height:54px;font-size:1.2rem;border-radius:10px}}
-  .otp-row{{gap:7px}}
-}}
-</style></head><body>
-<div class="orb orb1"></div><div class="orb orb2"></div><div class="orb orb3"></div>
-<div class="card">
-  <!-- Stepper -->
-  <div class="stepper">
-    <div class="si"><div class="sc active">1</div><div class="sl active">Verify</div></div>
-    <div class="conn"></div>
-    <div class="si"><div class="sc idle">2</div><div class="sl idle">Update</div></div>
-    <div class="conn"></div>
-    <div class="si"><div class="sc idle">3</div><div class="sl idle">Done</div></div>
-  </div>
-
-  <!-- Logo -->
-  <div class="logo"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-
-  <h1>Verify Code</h1>
-  <p class="sub">Enter the 6-digit code sent to<br><strong>{em[:2]}{'*' * (em.index('@') - 2)}{em[em.index('@'):]}</strong></p>
-
-  <!-- OTP Boxes -->
-  <div class="otp-row">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-    <input class="ob" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
-  </div>
-
-  <!-- Resend -->
-  <div class="resend" id="resend-row">
-    Resend in <span id="tmr">{_mm}:{_ss}</span>
-    <button class="resend-btn" id="resend-btn">Resend Code</button>
-  </div>
-
-  {_err_html}
-
-  <!-- Buttons -->
-  <div class="btn-row">
-    <button class="btn-ghost" id="back-btn">← Back</button>
-    <button class="btn-primary" id="verify-btn" disabled>Verify Code</button>
-  </div>
-</div>
-
-<script>
-(function(){{
-  var boxes = document.querySelectorAll('.ob');
-  var vbtn  = document.getElementById('verify-btn');
-  var rbtn  = document.getElementById('resend-btn');
-  var rrow  = document.getElementById('resend-row');
-  var bbtn  = document.getElementById('back-btn');
-
-  // Auto-focus first box
-  setTimeout(function(){{ boxes[0].focus(); }}, 300);
-
-  function getOTP(){{ return Array.from(boxes).map(function(b){{return b.value;}}).join(''); }}
-
-  function bridge(action, otp){{
-    var p = window.parent;
-    var url = new URL(p.location.href);
-    if(action === 'DO_VERIFY' && otp) url.searchParams.set('pr_otp', otp);
-    url.searchParams.set('pr_action', action === 'DO_VERIFY' ? 'verify' : action === 'DO_BACK' ? 'back' : 'resend');
-    // Keep auth mode in URL so home page is skipped on reload
-    url.searchParams.set('auth', '1');
-    p.location.href = url.toString();
-  }}
-
-  boxes.forEach(function(box, i){{
-    box.addEventListener('input', function(){{
-      box.value = box.value.replace(/[^0-9]/g,'');
-      box.classList.toggle('filled', !!box.value);
-      if(box.value && i < 5) boxes[i+1].focus();
-      var full = getOTP().length === 6;
-      vbtn.disabled = !full;
-      // Auto-trigger on complete
-      if(full){{
-        vbtn.disabled = true;
-        vbtn.innerHTML = '<span class="spin"></span>Verifying…';
-        bridge('DO_VERIFY', getOTP());
-      }}
-    }});
-    box.addEventListener('keydown', function(e){{
-      if(e.key==='Backspace' && !box.value && i>0) boxes[i-1].focus();
-      if(e.key==='ArrowLeft' && i>0) boxes[i-1].focus();
-      if(e.key==='ArrowRight' && i<5) boxes[i+1].focus();
-    }});
-    box.addEventListener('paste', function(e){{
-      e.preventDefault();
-      var txt = (e.clipboardData||window.clipboardData).getData('text').replace(/[^0-9]/g,'').slice(0,6);
-      txt.split('').forEach(function(ch,j){{ if(boxes[j]){{ boxes[j].value=ch; boxes[j].classList.add('filled'); }} }});
-      if(txt.length===6){{ boxes[5].focus(); vbtn.disabled=false; }}
-    }});
-  }});
-
-  vbtn.addEventListener('click', function(){{
-    if(vbtn.disabled) return;
-    vbtn.disabled = true;
-    vbtn.innerHTML = '<span class="spin"></span>Verifying…';
-    bridge('DO_VERIFY', getOTP());
-  }});
-
-  bbtn.addEventListener('click', function(){{ bridge('DO_BACK'); }});
-  rbtn.addEventListener('click', function(){{
-    rbtn.style.display='none';
-    rrow.innerHTML = 'Code sent! Check your inbox.';
-    bridge('DO_RESEND');
-  }});
-
-  // Countdown timer
-  var rem = {_rem};
-  var tmr = document.getElementById('tmr');
-  function tick(){{
-    if(rem <= 0){{
-      if(rrow) rrow.innerHTML = '';
-      rbtn.style.display = 'inline';
-      if(rrow) rrow.appendChild(rbtn);
-      return;
-    }}
-    if(tmr) tmr.textContent = String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
-    rem--; setTimeout(tick, 1000);
-  }}
-  tick();
-}})();
-</script></body></html>""", height=580, scrolling=False)
 
             elif _step == "password":
                 st.markdown("<h3 style='color:#F8FAFC;text-align:center'>New Password</h3>", unsafe_allow_html=True)
