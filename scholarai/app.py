@@ -877,177 +877,79 @@ if not st.session_state.user_authenticated:
                         unsafe_allow_html=True)
 
 
-        # ── Verification ───────────────────────────────────────────
+        # ── Verification — pure native Streamlit ──────────────────
         elif st.session_state.auth_mode == "verify":
             st.markdown("""<style>
             [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
             .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
             .stApp{background:#020617!important}
-            .main .block-container{padding:0!important;margin:0!important;max-width:100%!important}
-            .main{padding:0!important}
-            section.main>div{padding:0!important}
+            .main .block-container{padding:2rem 1rem!important;max-width:460px!important;margin:0 auto!important}
+            div[data-testid="stTextInput"] input{
+                background:rgba(255,255,255,.05)!important;border:1.5px solid rgba(255,255,255,.1)!important;
+                border-radius:10px!important;color:#F8FAFC!important;font-size:1.1rem!important;
+                letter-spacing:.2em!important;text-align:center!important;
+            }
+            div[data-testid="stTextInput"] input:focus{border-color:#4361EE!important;box-shadow:0 0 0 3px rgba(67,97,238,.15)!important;}
+            div[data-testid="stTextInput"] label{color:#94A3B8!important;font-size:.8rem!important;font-weight:600!important}
+            div.stButton>button[kind="primary"]{background:linear-gradient(135deg,#4361EE,#7209B7)!important;border:none!important;border-radius:11px!important;font-weight:800!important;}
+            div.stButton>button{background:transparent!important;border:1px solid rgba(255,255,255,.1)!important;color:#94A3B8!important;border-radius:11px!important;}
+            p,label,.stMarkdown{color:#F8FAFC!important}
             </style>""", unsafe_allow_html=True)
 
-            # Isolated bridge logic
-            with st.container():
-                st.markdown('<div class="bridge-element">', unsafe_allow_html=True)
-                v_otp_val = st.text_input("OTP_VALUE_BRIDGE", key="v_otp_internal", label_visibility="collapsed")
-                v_verify_trigger = st.button("VERIFY_TRIGGER", key="v_verify_internal")
-                v_resend_trigger = st.button("RESEND_TRIGGER", key="v_resend_internal")
-                v_back_trigger   = st.button("BACK_TRIGGER", key="v_back_internal")
-                st.markdown('</div>', unsafe_allow_html=True)
+            _em = st.session_state.get("auth_email", "")
+            try:
+                _at = _em.index("@")
+                _masked = _em[:2] + "*" * (_at - 2) + _em[_at:]
+            except Exception:
+                _masked = _em
 
-            if v_verify_trigger:
-                user = db.get_user_by_email(st.session_state.auth_email)
-                if user and user["verification_code"] == v_otp_val:
+            COOLDOWN = 120
+            _last = st.session_state.get("last_code_sent_at", 0)
+            _rem  = max(0, int(COOLDOWN - (time.time() - _last))) if _last else 0
+
+            st.markdown(f"""
+            <div style='text-align:center;margin-bottom:1.5rem;margin-top:1rem'>
+              <div style='font-size:2.5rem;margin-bottom:.5rem'>📧</div>
+              <h3 style='color:#F8FAFC;margin-bottom:.3rem'>Verify Your Email</h3>
+              <p style='color:#94A3B8;font-size:.88rem'>Enter the 6-digit code sent to
+                <strong style='color:#818cf8'>{_masked}</strong></p>
+            </div>""", unsafe_allow_html=True)
+
+            _v_err = st.session_state.get("v_error", "")
+            if _v_err:
+                st.error(_v_err)
+                st.session_state.v_error = ""
+
+            v_code_in = st.text_input("6-Digit Code", placeholder="e.g. 123456",
+                                      max_chars=6, key="v_code_direct")
+
+            if st.button("Verify Account →", key="v_verify_n", use_container_width=True, type="primary"):
+                user = db.get_user_by_email(_em)
+                if user and user.get("verification_code") == v_code_in.strip():
                     db.update_user_verification(st.session_state.auth_username, True)
-                    st.success("✅ Account verified!")
-                    time.sleep(1)
                     st.session_state.auth_mode = "login"
+                    st.session_state.v_error = ""
                     st.rerun()
                 else:
-                    st.error("❌ Invalid verification code.")
+                    st.session_state.v_error = "Invalid code. Please check your email and try again."
+                    st.rerun()
 
-            if v_resend_trigger:
-                v_code = mailer.generate_6_digit_code()
-                db.update_verification_code(st.session_state.auth_email, v_code)
-                mailer.send_verification_code(st.session_state.auth_email, v_code)
-                st.session_state.last_code_sent_at = time.time()
-                st.toast("✅ Verification code resent!")
-                st.rerun()
+            if _rem > 0:
+                st.caption(f"⏱ Resend available in {_rem // 60:02d}:{_rem % 60:02d}")
+            else:
+                if st.button("📧 Resend Code", key="v_resend_n", use_container_width=True):
+                    v_code = mailer.generate_6_digit_code()
+                    db.update_verification_code(_em, v_code)
+                    import threading
+                    threading.Thread(target=mailer.send_verification_code,
+                                     args=(_em, v_code), daemon=True).start()
+                    st.session_state.last_code_sent_at = time.time()
+                    st.toast("✅ Verification code resent!")
+                    st.rerun()
 
-            if v_back_trigger:
+            if st.button("← Back to Signup", key="v_back_n", use_container_width=True):
                 st.session_state.auth_mode = "signup"
                 st.rerun()
-
-            # SaaS Card Component
-            COOLDOWN = 120
-            last_sent = st.session_state.get('last_code_sent_at', 0)
-            elapsed = time.time() - last_sent if last_sent > 0 else COOLDOWN + 1
-            remaining = max(0, int(COOLDOWN - elapsed))
-
-            otp_ui_html = f"""
-            <style>
-            @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
-            :root {{ --primary: #4361EE; --bg: #020617; --text: #F8FAFC; --muted: #94A3B8; --success: #10B981; }}
-            *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-            html,body {{
-                font-family: 'Plus Jakarta Sans', sans-serif;
-                background: radial-gradient(circle at 30% 60%, rgba(67,97,238,0.15), transparent 55%),
-                            radial-gradient(circle at 80% 20%, rgba(114,9,183,0.12), transparent 50%),
-                            #020617;
-                min-height: 100vh; display: flex; align-items: center; justify-content: center;
-                overflow: hidden;
-            }}
-            .card {{
-                background: rgba(13, 20, 40, 0.95); backdrop-filter: blur(24px);
-                border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 28px;
-                padding: 44px 40px; width: 460px; max-width: calc(100vw - 32px);
-                text-align: center; color: var(--text);
-                box-shadow: 0 32px 64px rgba(0,0,0,0.55);
-                animation: up .4s cubic-bezier(.16,1,.3,1) both;
-            }}
-            @keyframes up{{from{{opacity:0;transform:translateY(20px) scale(.97)}}to{{opacity:1;transform:none}}}}
-            .logo {{ font-size: 3rem; margin-bottom: 24px; }}
-            h1 {{ font-size: 1.8rem; font-weight: 800; margin-bottom: 8px; letter-spacing: -0.02em; }}
-            p {{ color: var(--muted); font-size: 0.95rem; margin-bottom: 32px; line-height: 1.5; }}
-            .otp-group {{ display: flex; gap: 10px; justify-content: center; margin-bottom: 32px; }}
-            .otp-box {{
-                width: 48px; height: 60px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.1);
-                background: rgba(255, 255, 255, 0.05); color: var(--primary); font-weight: 800; font-size: 24px;
-                text-align: center; transition: all 0.2s; caret-color: var(--primary);
-            }}
-            .otp-box:focus {{ border-color: var(--primary); background: rgba(67, 97, 238, 0.1); outline: none; box-shadow: 0 0 15px rgba(67, 97, 238, 0.3); }}
-            .verify-btn {{
-                width: 100%; padding: 16px; border-radius: 16px; border: none;
-                background: linear-gradient(135deg, var(--primary), #7209B7);
-                color: white; font-weight: 800; font-size: 1rem; cursor: pointer;
-                transition: transform 0.2s, box-shadow 0.2s; margin-bottom: 24px;
-            }}
-            .verify-btn:hover {{ transform: translateY(-2px); box-shadow: 0 10px 20px rgba(67, 97, 238, 0.4); }}
-            .verify-btn:disabled {{ opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }}
-            .resend-wrap {{ font-size: 0.9rem; color: var(--muted); }}
-            .resend-btn {{ color: var(--primary); font-weight: 700; cursor: pointer; text-decoration: none; display: none; }}
-            .back-link {{ display: block; margin-top: 24px; color: var(--muted); text-decoration: none; font-size: 0.85rem; font-weight: 600; opacity: 0.7; transition: 0.2s; }}
-            .back-link:hover {{ opacity: 1; color: white; }}
-            </style>
-            <div class="card">
-                    <div class="logo">📧</div>
-                    <h1>Verify Email</h1>
-                    <p>Enter the 6-digit code sent to <br/><strong>{st.session_state.auth_email}</strong></p>
-                    <div class="otp-group">
-                        <input type="text" class="otp-box" maxlength="1" autofocus>
-                        <input type="text" class="otp-box" maxlength="1">
-                        <input type="text" class="otp-box" maxlength="1">
-                        <input type="text" class="otp-box" maxlength="1">
-                        <input type="text" class="otp-box" maxlength="1">
-                        <input type="text" class="otp-box" maxlength="1">
-                    </div>
-                    <button class="verify-btn" id="v-btn" disabled>Verify Account</button>
-                    <div class="resend-wrap" id="t-wrap">Resend code in <span id="timer">02:00</span></div>
-                    <a href="#" class="resend-btn" id="r-btn">Resend Code</a>
-                    <a href="#" class="back-link" id="b-link">← Back to Signup</a>
-                </div>
-            <script>
-            (function() {{
-                const boxes = document.querySelectorAll('.otp-box');
-                const vBtn = document.getElementById('v-btn');
-                const rBtn = document.getElementById('r-btn');
-                const bLink = document.getElementById('b-link');
-                const tm = document.getElementById('timer');
-                const tWrap = document.getElementById('t-wrap');
-                let rem = {remaining};
-
-                function trigger(action, val='') {{
-                    const p = window.parent.document;
-                    const inputs = p.querySelectorAll('input');
-                    const btns = p.querySelectorAll('button');
-                    if(val) {{
-                        for(let i of inputs) {{
-                            const w = i.closest('[data-testid="stTextInput"]');
-                            if(!w) continue;
-                            const lbl = w.querySelector('label');
-                            if(lbl && lbl.textContent.includes('OTP_VALUE_BRIDGE')) {{
-                                i.value = val;
-                                i.dispatchEvent(new Event('input', {{ bubbles: true }}));
-                                break;
-                            }}
-                        }}
-                    }}
-                    setTimeout(() => {{
-                        let label = action==='V' ? 'VERIFY_TRIGGER' : (action==='R' ? 'RESEND_TRIGGER' : 'BACK_TRIGGER');
-                        for(let b of btns) {{
-                            let p = b.querySelector('p');
-                            let txt = p ? p.textContent.trim() : b.innerText.trim();
-                            if(txt === label) {{ b.click(); break; }}
-                        }}
-                    }}, 200);
-                }}
-
-                boxes.forEach((b,i) => {{
-                    b.oninput = () => {{ if(b.value.length===1 && i<5) boxes[i+1].focus(); update(); }};
-                    b.onkeydown = (e) => {{ if(e.key==='Backspace' && !b.value && i>0) boxes[i-1].focus(); }};
-                }});
-
-                function update() {{
-                    const val = Array.from(boxes).map(x=>x.value).join('');
-                    vBtn.disabled = val.length !== 6;
-                }}
-
-                vBtn.onclick = () => trigger('V', Array.from(boxes).map(x=>x.value).join(''));
-                rBtn.onclick = (e) => {{ e.preventDefault(); trigger('R'); }};
-                bLink.onclick = (e) => {{ e.preventDefault(); trigger('B'); }};
-
-                function tk() {{
-                    if(rem<=0) {{ tWrap.style.display='none'; rBtn.style.display='block'; return; }}
-                    tm.innerText = Math.floor(rem/60).toString().padStart(2,'0') + ':' + (rem%60).toString().padStart(2,'0');
-                    rem--; setTimeout(tk, 1000);
-                }}
-                tk();
-            }})();
-            </script>
-            """
-            components.html(otp_ui_html, height=600)
 
         # ── Forgot Password — pure native Streamlit, no bridges ──
         elif st.session_state.auth_mode == "forgot_pass":
