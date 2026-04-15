@@ -876,20 +876,37 @@ if not st.session_state.user_authenticated:
                     success, msg = db.create_user(su_username.strip(), su_email.strip(), su_pass, v_code)
                     if success:
                         # Send verification code email synchronously
-                        with st.spinner("Sending verification code..."):
+                        with st.spinner("Sending verification code... This may take a few seconds."):
                             try:
-                                email_sent = mailer.send_verification_code(su_email.strip(), v_code)
-                                if not email_sent:
-                                    st.warning("⚠️ Email sending failed, but your account was created. Please contact support or try resending the code.")
+                                # Check if SMTP is configured
+                                if not mailer.is_smtp_configured():
+                                    st.error("❌ SMTP is not configured on the server. Please contact the administrator.")
+                                    st.info(f"📝 Your verification code is: **{v_code}** (for testing only)")
+                                    email_sent = False
+                                else:
+                                    email_sent = mailer.send_verification_code(su_email.strip(), v_code)
+                                
+                                if email_sent:
+                                    st.success(f"✅ Verification code sent to {su_email.strip()}")
+                                    st.info("📧 Check your inbox (and spam folder)")
+                                else:
+                                    st.warning("⚠️ Email sending failed. Check the logs for details.")
+                                    st.info(f"📝 Your verification code is: **{v_code}**")
+                                    st.caption("You can use this code to verify your account, or click 'Resend Code' on the next screen.")
                             except Exception as e:
                                 st.error(f"❌ Failed to send email: {str(e)}")
-                                st.info("Your account was created. You can try resending the verification code.")
+                                st.info(f"📝 Your verification code is: **{v_code}**")
+                                st.caption("Your account was created. Use this code to verify, or try resending.")
                         
                         st.session_state.auth_username = su_username.strip()
                         st.session_state.auth_email    = su_email.strip()
                         st.session_state.auth_mode     = "verify"
                         st.session_state.last_code_sent_at = time.time()
                         
+                        # Store the code in session for emergency access
+                        st.session_state.emergency_code = v_code
+                        
+                        time.sleep(2)  # Give user time to read the message
                         st.rerun()
                     else:
                         st.session_state.su_error = msg

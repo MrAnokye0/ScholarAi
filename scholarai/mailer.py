@@ -33,9 +33,23 @@ def send_email(subject, recipient, body_html):
     """Sends an HTML email using dynamic SMTP settings."""
     config = get_smtp_config()
     
+    # Enhanced logging for debugging
+    print(f"\n{'='*60}")
+    print(f"SENDING EMAIL")
+    print(f"{'='*60}")
+    print(f"To: {recipient}")
+    print(f"Subject: {subject}")
+    print(f"SMTP Server: {config['server']}")
+    print(f"SMTP Port: {config['port']}")
+    print(f"SMTP User: {config['user']}")
+    print(f"SMTP Password: {'*' * len(config['password']) if config['password'] else 'NOT SET'}")
+    print(f"{'='*60}\n")
+    
     if not config["user"] or not config["password"]:
+        error_msg = f"❌ SMTP NOT CONFIGURED - User: {config['user']}, Password: {'SET' if config['password'] else 'NOT SET'}"
+        print(error_msg)
         print(f"\n[MOCK EMAIL] To: {recipient}\nSubject: {subject}\n")
-        return True
+        return False  # Changed from True to False to indicate failure
 
     msg = MIMEMultipart()
     msg['From'] = config["from"]
@@ -48,24 +62,39 @@ def send_email(subject, recipient, body_html):
                     ("ssl",      config["server"], 465)]:
         method, host, port = attempt
         try:
+            print(f"Attempting {method} connection to {host}:{port}...")
             if method == "starttls":
-                server = smtplib.SMTP(host, port, timeout=8)
+                server = smtplib.SMTP(host, port, timeout=15)  # Increased timeout
+                print(f"Connected via SMTP, starting TLS...")
                 server.starttls()
+                print(f"TLS started successfully")
             else:
-                server = smtplib.SMTP_SSL(host, port, timeout=8)
+                print(f"Connecting via SMTP_SSL...")
+                server = smtplib.SMTP_SSL(host, port, timeout=15)  # Increased timeout
+                print(f"Connected via SMTP_SSL")
+            
+            print(f"Logging in as {config['user']}...")
             server.login(config["user"], config["password"])
+            print(f"✅ Login successful")
+            
+            print(f"Sending message...")
             server.send_message(msg)
+            print(f"✅ Message sent")
+            
             server.quit()
-            print(f"Email sent to {recipient} via {method}")
+            print(f"✅ Email sent to {recipient} via {method}")
+            print(f"{'='*60}\n")
             return True
         except smtplib.SMTPAuthenticationError as e:
-            print(f"Auth failed: {e}")
+            print(f"❌ Auth failed: {e}")
+            print(f"🔧 Check your Gmail App Password at: https://myaccount.google.com/apppasswords")
             return False  # No point retrying with wrong credentials
         except Exception as e:
-            print(f"{method} attempt failed: {type(e).__name__}: {e}")
+            print(f"❌ {method} attempt failed: {type(e).__name__}: {e}")
             continue
 
-    print(f"All SMTP attempts failed for {recipient}")
+    print(f"❌ All SMTP attempts failed for {recipient}")
+    print(f"{'='*60}\n")
     return False
 
 def send_verification_code(email, code):
