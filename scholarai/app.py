@@ -850,11 +850,17 @@ if not st.session_state.user_authenticated:
                     if success:
                         # Send verification code email
                         with st.spinner("Sending verification code..."):
-                            mailer.send_verification_code(su_email.strip(), v_code)
+                            email_sent = mailer.send_verification_code(su_email.strip(), v_code)
+                        
                         st.session_state.auth_username = su_username.strip()
                         st.session_state.auth_email    = su_email.strip()
                         st.session_state.auth_mode     = "verify"
                         st.session_state.last_code_sent_at = time.time()
+                        
+                        # If SMTP not configured, show code on screen for development
+                        if not mailer.is_smtp_configured():
+                            st.session_state.dev_verification_code = v_code
+                        
                         st.rerun()
                     else:
                         st.session_state.su_error = msg
@@ -915,6 +921,11 @@ if not st.session_state.user_authenticated:
               <p style='color:#94A3B8;font-size:.88rem'>Enter the 6-digit code sent to
                 <strong style='color:#818cf8'>{_masked}</strong></p>
             </div>""", unsafe_allow_html=True)
+            
+            # Show dev code if SMTP not configured
+            if not mailer.is_smtp_configured() and "dev_verification_code" in st.session_state:
+                st.info(f"🔧 **Development Mode**: Your verification code is: **{st.session_state.dev_verification_code}**")
+                st.caption("(This is shown because SMTP is not configured. In production, this will be sent via email.)")
 
             _v_err = st.session_state.get("v_error", "")
             if _v_err:
@@ -926,13 +937,22 @@ if not st.session_state.user_authenticated:
 
             if st.button("Verify Account →", key="v_verify_n", use_container_width=True, type="primary"):
                 user = db.get_user_by_email(_em)
-                if user and user.get("verification_code") == v_code_in.strip():
-                    db.update_user_verification(st.session_state.auth_username, True)
-                    st.session_state.auth_mode = "login"
-                    st.session_state.v_error = ""
-                    st.rerun()
+                if user:
+                    stored_code = user.get("verification_code", "").strip()
+                    entered_code = v_code_in.strip()
+                    
+                    if stored_code and stored_code == entered_code:
+                        db.update_user_verification(st.session_state.auth_username, True)
+                        st.session_state.auth_mode = "login"
+                        st.session_state.v_error = ""
+                        st.success("✅ Account verified! You can now sign in.")
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.session_state.v_error = "Invalid code. Please check your email and try again."
+                        st.rerun()
                 else:
-                    st.session_state.v_error = "Invalid code. Please check your email and try again."
+                    st.session_state.v_error = "User not found. Please try signing up again."
                     st.rerun()
 
             if _rem > 0:
@@ -945,6 +965,11 @@ if not st.session_state.user_authenticated:
                     threading.Thread(target=mailer.send_verification_code,
                                      args=(_em, v_code), daemon=True).start()
                     st.session_state.last_code_sent_at = time.time()
+                    
+                    # If SMTP not configured, show code on screen
+                    if not mailer.is_smtp_configured():
+                        st.session_state.dev_verification_code = v_code
+                    
                     st.toast("✅ Verification code resent!")
                     st.rerun()
 

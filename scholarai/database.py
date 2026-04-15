@@ -300,3 +300,11 @@ def force_verify_user(email_or_username: str) -> bool:
             WHERE username = ? OR email = ?
         """, (email_or_username, email_or_username))
         return cursor.rowcount > 0
+
+def get_user_verification_code(email: str) -> str | None:
+    """Get the verification code for a user (for debugging)."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT verification_code FROM users WHERE email = ?
+        """, (email,)).fetchone()
+        return row[0] if row else None
