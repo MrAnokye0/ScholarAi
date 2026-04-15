@@ -69,7 +69,7 @@ def send_email(subject, recipient, body_html):
     return False
 
 def send_verification_code(email, code):
-    """Sends a 6-digit verification code to the user (non-blocking)."""
+    """Sends a 6-digit verification code to the user (synchronous for Streamlit Cloud)."""
     subject = "ScholarAI — Verify Your Account"
     html = f"""
     <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:auto;background:#0B0F19;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">
@@ -92,11 +92,11 @@ def send_verification_code(email, code):
       </div>
     </div>
     """
-    threading.Thread(target=send_email, args=(subject, email, html), daemon=True).start()
-    return True
+    # Send synchronously for Streamlit Cloud compatibility
+    return send_email(subject, email, html)
 
 def send_password_reset(email, code):
-    """Sends a password reset code to the user (non-blocking)."""
+    """Sends a password reset code to the user (synchronous for Streamlit Cloud)."""
     subject = "ScholarAI — Reset Your Password"
     html = f"""
     <div style="font-family:'Helvetica Neue',Arial,sans-serif;max-width:520px;margin:auto;background:#0B0F19;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08)">
@@ -119,8 +119,8 @@ def send_password_reset(email, code):
       </div>
     </div>
     """
-    threading.Thread(target=send_email, args=(subject, email, html), daemon=True).start()
-    return True
+    # Send synchronously for Streamlit Cloud compatibility
+    return send_email(subject, email, html)
 
 def generate_6_digit_code():
     """Generates a random 6-digit code as a string."""

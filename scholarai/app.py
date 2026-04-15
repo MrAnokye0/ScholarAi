@@ -244,8 +244,8 @@ if _early_action:
         if _em:
             _rc = mailer.generate_6_digit_code()
             db.update_reset_token(_em, _rc)
-            import threading
-            threading.Thread(target=mailer.send_password_reset, args=(_em, _rc), daemon=True).start()
+            # Send synchronously for Streamlit Cloud
+            mailer.send_password_reset(_em, _rc)
             st.session_state.last_code_sent_at = time.time()
             st.session_state.pr_error = ""
     st.rerun()
@@ -875,9 +875,15 @@ if not st.session_state.user_authenticated:
                     v_code = mailer.generate_6_digit_code()
                     success, msg = db.create_user(su_username.strip(), su_email.strip(), su_pass, v_code)
                     if success:
-                        # Send verification code email
+                        # Send verification code email synchronously
                         with st.spinner("Sending verification code..."):
-                            email_sent = mailer.send_verification_code(su_email.strip(), v_code)
+                            try:
+                                email_sent = mailer.send_verification_code(su_email.strip(), v_code)
+                                if not email_sent:
+                                    st.warning("⚠️ Email sending failed, but your account was created. Please contact support or try resending the code.")
+                            except Exception as e:
+                                st.error(f"❌ Failed to send email: {str(e)}")
+                                st.info("Your account was created. You can try resending the verification code.")
                         
                         st.session_state.auth_username = su_username.strip()
                         st.session_state.auth_email    = su_email.strip()
@@ -993,12 +999,14 @@ if not st.session_state.user_authenticated:
                 if st.button("📧 Resend Code", key="v_resend_n", use_container_width=True):
                     v_code = mailer.generate_6_digit_code()
                     db.update_verification_code(_em, v_code)
-                    import threading
-                    threading.Thread(target=mailer.send_verification_code,
-                                     args=(_em, v_code), daemon=True).start()
-                    st.session_state.last_code_sent_at = time.time()
-                    
-                    st.toast("✅ Verification code resent!")
+                    # Send synchronously for Streamlit Cloud
+                    with st.spinner("Resending code..."):
+                        try:
+                            mailer.send_verification_code(_em, v_code)
+                            st.session_state.last_code_sent_at = time.time()
+                            st.toast("✅ Verification code resent!")
+                        except Exception as e:
+                            st.error(f"Failed to send email: {str(e)}")
                     st.rerun()
 
             if st.button("← Back to Signup", key="v_back_n", use_container_width=True):
@@ -1062,8 +1070,8 @@ if not st.session_state.user_authenticated:
                             if user:
                                 r_code = mailer.generate_6_digit_code()
                                 db.update_reset_token(fe, r_code)
-                                import threading
-                                threading.Thread(target=mailer.send_password_reset, args=(fe, r_code), daemon=True).start()
+                                # Send synchronously for Streamlit Cloud
+                                mailer.send_password_reset(fe, r_code)
                                 st.session_state.auth_email = fe
                                 st.session_state.reset_step = "otp"
                                 st.session_state.last_code_sent_at = time.time()
@@ -1125,9 +1133,8 @@ if not st.session_state.user_authenticated:
                     if st.button("📧 Resend Code", key="pr_resend_otp", use_container_width=True):
                         r_code = mailer.generate_6_digit_code()
                         db.update_reset_token(em, r_code)
-                        import threading
-                        threading.Thread(target=mailer.send_password_reset,
-                                         args=(em, r_code), daemon=True).start()
+                        # Send synchronously for Streamlit Cloud
+                        mailer.send_password_reset(em, r_code)
                         st.session_state.last_code_sent_at = time.time()
                         st.toast("✅ New code sent!")
                         st.rerun()
@@ -1232,9 +1239,8 @@ if not st.session_state.user_authenticated:
                         # Auto-resend verification code so user gets it immediately
                         v_code = mailer.generate_6_digit_code()
                         db.update_verification_code(user["email"], v_code)
-                        import threading
-                        threading.Thread(target=mailer.send_verification_code,
-                                         args=(user["email"], v_code), daemon=True).start()
+                        # Send synchronously for Streamlit Cloud
+                        mailer.send_verification_code(user["email"], v_code)
                         st.session_state.last_code_sent_at = time.time()
                         st.rerun()
                 else:
