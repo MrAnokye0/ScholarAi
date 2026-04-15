@@ -848,12 +848,13 @@ if not st.session_state.user_authenticated:
                     v_code = mailer.generate_6_digit_code()
                     success, msg = db.create_user(su_username.strip(), su_email.strip(), su_pass, v_code)
                     if success:
-                        import threading
-                        threading.Thread(target=mailer.send_verification_code,
-                                         args=(su_email.strip(), v_code), daemon=True).start()
+                        # Send verification code email
+                        with st.spinner("Sending verification code..."):
+                            mailer.send_verification_code(su_email.strip(), v_code)
                         st.session_state.auth_username = su_username.strip()
                         st.session_state.auth_email    = su_email.strip()
                         st.session_state.auth_mode     = "verify"
+                        st.session_state.last_code_sent_at = time.time()
                         st.rerun()
                     else:
                         st.session_state.su_error = msg
