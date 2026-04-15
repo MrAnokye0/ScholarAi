@@ -17,8 +17,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 from dotenv import load_dotenv
 import secrets
+from pathlib import Path
 
-load_dotenv()
+# Load .env from the same directory as this script
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # ── Page config (must be first Streamlit call) ─────────────────────
 st.set_page_config(
@@ -823,6 +826,30 @@ if not st.session_state.user_authenticated:
               <p style='color:#64748B;font-size:.87rem'>Start generating literature reviews for free.</p>
             </div>
             """, unsafe_allow_html=True)
+            
+            # Prevent Enter key from submitting forms
+            st.markdown("""
+            <script>
+            (function() {
+                function preventEnterSubmit() {
+                    const inputs = window.parent.document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+                    inputs.forEach(input => {
+                        input.removeEventListener('keydown', handleEnter);
+                        input.addEventListener('keydown', handleEnter);
+                    });
+                }
+                function handleEnter(e) {
+                    if (e.key === 'Enter' || e.keyCode === 13) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }
+                preventEnterSubmit();
+                setInterval(preventEnterSubmit, 500);
+            })();
+            </script>
+            """, unsafe_allow_html=True)
 
             _su_err = st.session_state.get("su_error", "")
             if _su_err:
@@ -921,6 +948,20 @@ if not st.session_state.user_authenticated:
               <p style='color:#94A3B8;font-size:.88rem'>Enter the 6-digit code sent to
                 <strong style='color:#818cf8'>{_masked}</strong></p>
             </div>""", unsafe_allow_html=True)
+            
+            # Prevent Enter key submission
+            st.markdown("""
+            <script>
+            (function() {
+                const inputs = window.parent.document.querySelectorAll('input');
+                inputs.forEach(input => {
+                    input.addEventListener('keydown', function(e) {
+                        if (e.key === 'Enter') { e.preventDefault(); return false; }
+                    });
+                });
+            })();
+            </script>
+            """, unsafe_allow_html=True)
             
             # Show dev code if SMTP not configured
             if not mailer.is_smtp_configured() and "dev_verification_code" in st.session_state:
@@ -1134,9 +1175,33 @@ if not st.session_state.user_authenticated:
 
         # ── Login (Default) ────────────────────────────────────────
         else:
+            # Prevent Enter key from submitting forms
+            st.markdown("""
+            <script>
+            // Prevent Enter key submission on all input fields
+            document.addEventListener('DOMContentLoaded', function() {
+                function preventEnterSubmit() {
+                    const inputs = parent.document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
+                    inputs.forEach(input => {
+                        input.addEventListener('keydown', function(e) {
+                            if (e.key === 'Enter' || e.keyCode === 13) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                return false;
+                            }
+                        });
+                    });
+                }
+                preventEnterSubmit();
+                // Re-apply after Streamlit reruns
+                setInterval(preventEnterSubmit, 500);
+            });
+            </script>
+            """, unsafe_allow_html=True)
+            
             st.markdown('<div class="auth-form-title" style="font-size:1.3rem;">Welcome Back</div>', unsafe_allow_html=True)
-            l_user = st.text_input("Username or Email", placeholder="e.g. scholar_user")
-            l_pass = st.text_input("Password", type="password", placeholder="••••••••")
+            l_user = st.text_input("Username or Email", placeholder="e.g. scholar_user", key="login_user")
+            l_pass = st.text_input("Password", type="password", placeholder="••••••••", key="login_pass")
             remember_me = st.checkbox("Remember Me", value=True)
 
             # Auto-login once both fields are filled (no Enter key needed).

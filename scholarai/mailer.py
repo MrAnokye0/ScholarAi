@@ -5,13 +5,17 @@ import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
+from pathlib import Path
 
-load_dotenv()
+# Load .env from the same directory as this script
+env_path = Path(__file__).parent / '.env'
+load_dotenv(dotenv_path=env_path)
 
 # SMTP Configuration helper
 def get_smtp_config():
     """Dynamically reload settings from .env."""
-    load_dotenv(override=True)
+    env_path = Path(__file__).parent / '.env'
+    load_dotenv(dotenv_path=env_path, override=True)
     return {
         "server":   os.getenv("SMTP_SERVER", "smtp.gmail.com").strip(),
         "port":     int(os.getenv("SMTP_PORT", 587)),
