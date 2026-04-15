@@ -1161,7 +1161,12 @@ if not st.session_state.user_authenticated:
                         st.session_state.last_code_sent_at = time.time()
                         st.rerun()
                 else:
-                    st.error("❌ Invalid login credentials.")
+                    # Check if user exists but password is wrong
+                    user_by_email = db.get_user_by_email(l_user)
+                    if user_by_email:
+                        st.error("❌ Invalid password. Please try again or reset your password.")
+                    else:
+                        st.error("❌ Account not found. Please check your email or create an account.")
 
             col_l, col_r = st.columns(2)
             with col_l:

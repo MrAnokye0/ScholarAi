@@ -90,6 +90,10 @@ def hash_password(password: str) -> str:
     """Hash password with SHA-256 for basic security."""
     return hashlib.sha256(password.encode()).hexdigest()
 
+def verify_password_hash(password: str, stored_hash: str) -> bool:
+    """Verify if a password matches the stored hash."""
+    return hash_password(password) == stored_hash
+
 def create_user(username: str, email: str, password: str, verification_code: str) -> tuple[bool, str]:
     """Create a new user. Returns (success, message)."""
     with get_conn() as conn:
@@ -277,3 +281,22 @@ def get_active_sessions_today() -> int:
         return conn.execute(
             "SELECT COUNT(*) FROM sessions WHERE date(last_active) = date('now')"
         ).fetchone()[0]
+
+def debug_user_info(email_or_username: str) -> dict | None:
+    """Debug function to check user info without password verification."""
+    with get_conn() as conn:
+        row = conn.execute("""
+            SELECT id, username, email, is_verified, tier, created_at 
+            FROM users 
+            WHERE username = ? OR email = ?
+        """, (email_or_username, email_or_username)).fetchone()
+        return dict(row) if row else None
+
+def force_verify_user(email_or_username: str) -> bool:
+    """Force verify a user account (admin function)."""
+    with get_conn() as conn:
+        cursor = conn.execute("""
+            UPDATE users SET is_verified = 1 
+            WHERE username = ? OR email = ?
+        """, (email_or_username, email_or_username))
+        return cursor.rowcount > 0
