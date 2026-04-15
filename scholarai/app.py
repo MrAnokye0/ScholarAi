@@ -1600,7 +1600,7 @@ if st.session_state.generating:
                 if active_provider == "google":
                     import google.generativeai as genai
                     genai.configure(api_key=st.session_state.gemini_api_key)
-                    client = genai.GenerativeModel("gemini-1.5-flash")
+                    client = genai.GenerativeModel("gemini-pro")  # Changed to gemini-pro for better compatibility
                 else:
                     from openai import OpenAI
                     client = OpenAI(api_key=st.session_state.api_key)
@@ -1642,7 +1642,7 @@ if st.session_state.generating:
                         st.warning("⚠ OpenAI unavailable/quota reached. Retrying automatically with Gemini...")
                         import google.generativeai as genai
                         genai.configure(api_key=st.session_state.gemini_api_key)
-                        fallback_client = genai.GenerativeModel("gemini-1.5-flash")
+                        fallback_client = genai.GenerativeModel("gemini-pro")  # Changed to gemini-pro
                         result = generate_review(
                             fallback_client,
                             st.session_state.topic,
@@ -1760,7 +1760,7 @@ if generate_clicked and ready:
         if st.session_state.ai_provider == "google":
             import google.generativeai as genai
             genai.configure(api_key=st.session_state.gemini_api_key)
-            client = genai.GenerativeModel("gemini-1.5-flash")
+            client = genai.GenerativeModel("gemini-pro")  # Changed to gemini-pro
         else:
             from openai import OpenAI
             client = OpenAI(api_key=st.session_state.api_key)
@@ -1822,7 +1822,7 @@ if generate_clicked and ready:
                     update_progress("⚠ OpenAI unavailable/quota reached. Retrying with Gemini...")
                     import google.generativeai as genai
                     genai.configure(api_key=st.session_state.gemini_api_key)
-                    fallback_client = genai.GenerativeModel("gemini-1.5-flash")
+                    fallback_client = genai.GenerativeModel("gemini-pro")  # Changed to gemini-pro
                     result = generate_review(
                         client=fallback_client,
                         topic=st.session_state.topic,

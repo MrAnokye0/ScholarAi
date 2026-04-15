@@ -17,13 +17,11 @@ from prompts import build_metadata_prompt, build_review_prompt
 from reference_formatter import format_all_references, format_intext
 
 GEMINI_FALLBACK_MODELS = [
-    "gemini-2.0-flash",
-    "gemini-1.5-flash-8b",
-    "gemini-1.5-flash-8b-latest",
-    "gemini-1.5-flash",
+    "gemini-pro",  # Most stable and widely available
+    "gemini-1.5-pro-latest",
     "gemini-1.5-flash-latest",
     "gemini-1.5-pro",
-    "gemini-1.5-pro-latest",
+    "gemini-1.5-flash",
 ]
 
 
