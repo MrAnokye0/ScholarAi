@@ -884,10 +884,6 @@ if not st.session_state.user_authenticated:
                         st.session_state.auth_mode     = "verify"
                         st.session_state.last_code_sent_at = time.time()
                         
-                        # If SMTP not configured, show code on screen for development
-                        if not mailer.is_smtp_configured():
-                            st.session_state.dev_verification_code = v_code
-                        
                         st.rerun()
                     else:
                         st.session_state.su_error = msg
@@ -962,11 +958,6 @@ if not st.session_state.user_authenticated:
             })();
             </script>
             """, unsafe_allow_html=True)
-            
-            # Show dev code if SMTP not configured
-            if not mailer.is_smtp_configured() and "dev_verification_code" in st.session_state:
-                st.info(f"🔧 **Development Mode**: Your verification code is: **{st.session_state.dev_verification_code}**")
-                st.caption("(This is shown because SMTP is not configured. In production, this will be sent via email.)")
 
             _v_err = st.session_state.get("v_error", "")
             if _v_err:
@@ -1006,10 +997,6 @@ if not st.session_state.user_authenticated:
                     threading.Thread(target=mailer.send_verification_code,
                                      args=(_em, v_code), daemon=True).start()
                     st.session_state.last_code_sent_at = time.time()
-                    
-                    # If SMTP not configured, show code on screen
-                    if not mailer.is_smtp_configured():
-                        st.session_state.dev_verification_code = v_code
                     
                     st.toast("✅ Verification code resent!")
                     st.rerun()
