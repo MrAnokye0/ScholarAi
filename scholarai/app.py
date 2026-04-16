@@ -578,6 +578,134 @@ h1{{font-size:1.55rem;font-weight:800;color:var(--tx);margin-bottom:5px;letter-s
 # ══════════════════════════════════════════════════════════════════
 if not st.session_state.user_authenticated:
 
+    # ── Handle Terms and Privacy pages ─────────────────────────────
+    page_param = st.query_params.get("page")
+    if page_param == "terms":
+        st.markdown("""
+        <style>
+        .stApp{background:#020617!important}
+        [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
+        .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
+        </style>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.markdown("### 📜 Terms of Use")
+            st.markdown("**Last Updated:** April 16, 2026")
+            st.markdown("---")
+            
+            st.markdown("""
+            #### 1. Acceptance of Terms
+            By accessing and using ScholarAI, you agree to be bound by these Terms of Use.
+            
+            #### 2. Use of Service
+            ScholarAI is designed for academic research purposes only. You agree to:
+            - Use the service ethically and responsibly
+            - Provide accurate information during registration
+            - Review all AI-generated content before academic submission
+            - Not use the service for any illegal or unauthorized purpose
+            
+            #### 3. User Responsibilities
+            - You are responsible for maintaining the confidentiality of your account
+            - You must provide accurate and complete information
+            - You agree to review and verify all AI-generated content
+            - You acknowledge that AI-generated content may contain errors
+            
+            #### 4. Intellectual Property
+            - You retain all rights to content you upload
+            - ScholarAI retains rights to the platform and its technology
+            - Generated content is provided for your use under these terms
+            
+            #### 5. Disclaimer
+            - AI-generated content should always be reviewed before submission
+            - ScholarAI is not responsible for academic consequences of using generated content
+            - The service is provided "as is" without warranties
+            
+            #### 6. Limitation of Liability
+            ScholarAI shall not be liable for any indirect, incidental, or consequential damages.
+            
+            #### 7. Changes to Terms
+            We reserve the right to modify these terms at any time. Continued use constitutes acceptance.
+            
+            #### 8. Contact
+            For questions about these terms, contact us through the application.
+            """)
+            
+            if st.button("← Back to Sign Up", use_container_width=True):
+                st.query_params.clear()
+                st.rerun()
+        st.stop()
+    
+    elif page_param == "privacy":
+        st.markdown("""
+        <style>
+        .stApp{background:#020617!important}
+        [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
+        .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
+        </style>
+        """, unsafe_allow_html=True)
+        
+        col1, col2, col3 = st.columns([1, 3, 1])
+        with col2:
+            st.markdown("### 🔒 Privacy Policy")
+            st.markdown("**Last Updated:** April 16, 2026")
+            st.markdown("---")
+            
+            st.markdown("""
+            #### 1. Information We Collect
+            - **Account Information:** Email address, username, password (encrypted)
+            - **Usage Data:** Documents uploaded (processed temporarily), generation history
+            - **Technical Data:** IP address, browser type, device information
+            
+            #### 2. How We Use Your Information
+            - To provide and maintain the service
+            - To send verification emails and notifications
+            - To improve user experience and service quality
+            - To ensure security and prevent fraud
+            
+            #### 3. Data Storage and Security
+            - Documents are processed temporarily and not permanently stored
+            - User accounts are stored in secure databases
+            - Passwords are encrypted using industry-standard methods
+            - We use HTTPS encryption for all data transmission
+            
+            #### 4. Data Sharing
+            - We do NOT sell your personal information
+            - We do NOT share your data with third parties for marketing
+            - We may share data only when required by law
+            
+            #### 5. Your Rights
+            - **Access:** You can access your account data at any time
+            - **Delete:** You can delete your account and associated data
+            - **Export:** You can export your generated reviews
+            - **Correct:** You can update your account information
+            
+            #### 6. Cookies and Tracking
+            - We use essential cookies for authentication
+            - We do not use third-party tracking cookies
+            - You can disable cookies in your browser settings
+            
+            #### 7. Data Retention
+            - Account data is retained while your account is active
+            - Uploaded documents are processed temporarily and deleted after generation
+            - You can request data deletion at any time
+            
+            #### 8. Children's Privacy
+            ScholarAI is not intended for users under 13 years of age.
+            
+            #### 9. Changes to Privacy Policy
+            We may update this policy and will notify users of significant changes.
+            
+            #### 10. Contact Us
+            For privacy concerns or data requests, contact us through the application.
+            """)
+            
+            if st.button("← Back to Sign Up", use_container_width=True):
+                st.query_params.clear()
+                st.rerun()
+        st.stop()
+
     # ── Query param bridges ────────────────────────────────────────
     if st.query_params.get("auth_back") == "1":
         st.query_params.clear()
@@ -926,9 +1054,14 @@ if not st.session_state.user_authenticated:
                     st.session_state.auth_mode = "login"
                     st.rerun()
 
-            st.markdown("<p style='text-align:center;font-size:.7rem;color:#334155;margin-top:10px'>"
-                        "By signing up you agree to our Terms of Use and Privacy Policy.</p>",
-                        unsafe_allow_html=True)
+            # Terms and Privacy links
+            col_terms1, col_terms2, col_terms3 = st.columns([1, 2, 1])
+            with col_terms2:
+                st.markdown("<p style='text-align:center;font-size:.7rem;color:#334155;margin-top:10px'>"
+                            "By signing up you agree to our "
+                            "<a href='?page=terms' style='color:#4361EE;text-decoration:underline;cursor:pointer;'>Terms of Use</a> and "
+                            "<a href='?page=privacy' style='color:#4361EE;text-decoration:underline;cursor:pointer;'>Privacy Policy</a>.</p>",
+                            unsafe_allow_html=True)
 
 
         # ── Verification — pure native Streamlit ──────────────────
@@ -1265,7 +1398,21 @@ if not st.session_state.user_authenticated:
                     # Check if user exists but password is wrong
                     user_by_email = db.get_user_by_email(l_user)
                     if user_by_email:
-                        st.error("❌ Invalid password. Please try again or reset your password.")
+                        # User exists, check if they're verified
+                        if not user_by_email.get("is_verified", False):
+                            st.warning("⚠️ Your account is not verified yet. Please check your email for the verification code.")
+                            if st.button("Resend Verification Code", key="resend_from_login"):
+                                v_code = mailer.generate_6_digit_code()
+                                db.update_verification_code(user_by_email["email"], v_code)
+                                mailer.send_verification_code(user_by_email["email"], v_code)
+                                st.session_state.auth_email = user_by_email["email"]
+                                st.session_state.auth_username = user_by_email["username"]
+                                st.session_state.auth_mode = "verify"
+                                st.success("✅ Verification code sent! Redirecting...")
+                                time.sleep(1)
+                                st.rerun()
+                        else:
+                            st.error("❌ Invalid password. Please try again or reset your password.")
                     else:
                         st.error("❌ Account not found. Please check your email or create an account.")
 
