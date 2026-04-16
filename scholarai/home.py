@@ -30,7 +30,7 @@ iframe{border:none!important}
 }
 </style>""", unsafe_allow_html=True)
 
-    # ── CANVAS BACKGROUND + NAV + HERO ──────────────────────────────
+    # ── ANIMATED FLOATING ISLAND BACKGROUND + NAV + HERO ──────────────────────────────
     st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -45,8 +45,46 @@ iframe{border:none!important}
 }
 html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);overflow-x:hidden;scroll-behavior:smooth}
 
-/* CANVAS */
-#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none}
+/* ANIMATED FLOATING ISLAND BACKGROUND */
+#floating-bg{
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;
+  background:linear-gradient(180deg, #0B0F19 0%, #1a1f35 50%, #2d1b3d 100%);
+  overflow:hidden;
+}
+.floating-island{
+  position:absolute;
+  width:600px;height:600px;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%2306D6A0;stop-opacity:0.3"/><stop offset="100%" style="stop-color:%234361EE;stop-opacity:0.1"/></linearGradient></defs><ellipse cx="200" cy="300" rx="180" ry="80" fill="url(%23g1)" opacity="0.6"/><ellipse cx="200" cy="200" rx="150" ry="150" fill="%237209B7" opacity="0.2"/><circle cx="200" cy="150" r="80" fill="%2306D6A0" opacity="0.3"/><circle cx="180" cy="140" r="40" fill="%234361EE" opacity="0.4"/><circle cx="220" cy="160" r="30" fill="%23F72585" opacity="0.3"/></svg>');
+  background-size:contain;background-repeat:no-repeat;background-position:center;
+  animation:float-island 20s ease-in-out infinite;
+  opacity:0.15;filter:blur(40px);
+}
+.floating-island:nth-child(1){top:10%;left:10%;animation-delay:0s}
+.floating-island:nth-child(2){top:60%;right:15%;animation-delay:-7s;width:500px;height:500px}
+.floating-island:nth-child(3){bottom:10%;left:50%;animation-delay:-14s;width:400px;height:400px}
+
+@keyframes float-island{
+  0%,100%{transform:translateY(0) rotate(0deg) scale(1)}
+  25%{transform:translateY(-30px) rotate(2deg) scale(1.05)}
+  50%{transform:translateY(-50px) rotate(-2deg) scale(1.1)}
+  75%{transform:translateY(-30px) rotate(1deg) scale(1.05)}
+}
+
+/* Animated particles */
+.particle{
+  position:absolute;width:4px;height:4px;border-radius:50%;
+  background:radial-gradient(circle,rgba(99,120,255,0.8),transparent);
+  animation:particle-float 15s linear infinite;
+}
+@keyframes particle-float{
+  0%{transform:translateY(100vh) translateX(0) scale(0);opacity:0}
+  10%{opacity:1}
+  90%{opacity:1}
+  100%{transform:translateY(-100vh) translateX(100px) scale(1);opacity:0}
+}
+
+/* CANVAS for additional effects */
+#bg-canvas{position:fixed;top:0;left:0;width:100%;height:100%;z-index:1;pointer-events:none;opacity:0.4}
 
 /* NAV */
 .xnav{
@@ -58,7 +96,7 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
   transition:transform .4s var(--ease),background .3s;
 }
 .xnav.hide{transform:translateY(-100%)}
-.xnav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;position:relative;z-index:1}
+.xnav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;position:relative;z-index:1;cursor:pointer}
 .xnav-icon{
   width:36px;height:36px;border-radius:9px;
   background:linear-gradient(135deg,var(--c1),var(--c2));
@@ -70,7 +108,7 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
 .xnav-links{display:flex;align-items:center;gap:6px}
 .xnav-links a{
   color:var(--mu2);text-decoration:none;font-size:0.875rem;font-weight:500;
-  padding:6px 14px;border-radius:8px;transition:.2s;position:relative;
+  padding:6px 14px;border-radius:8px;transition:.2s;position:relative;cursor:pointer;
 }
 .xnav-links a:hover{color:var(--wh);background:rgba(255,255,255,0.06)}
 .xnav-right{display:flex;align-items:center;gap:10px}
@@ -82,7 +120,7 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
 .xnav-signin{
   color:var(--mu2);text-decoration:none;font-size:0.875rem;font-weight:500;
   padding:8px 18px;border-radius:8px;border:1px solid var(--border);
-  background:transparent;transition:.2s;display:inline-block;
+  background:transparent;transition:.2s;display:inline-block;cursor:pointer;
 }
 .xnav-signin:hover{color:var(--wh);border-color:rgba(255,255,255,0.2);background:var(--glass)}
 .xnav-cta{
