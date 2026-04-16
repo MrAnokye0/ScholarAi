@@ -21,7 +21,7 @@ st.set_page_config(
 )
 
 # Load CSS
-css_path = Path("assets/style.css")
+css_path = Path(__file__).parent.parent / "assets" / "style.css"
 if css_path.exists():
     st.markdown(f"<style>{css_path.read_text()}</style>", unsafe_allow_html=True)
 

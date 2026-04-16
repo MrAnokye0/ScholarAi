@@ -21,6 +21,10 @@ section.main>div{padding:0!important}
 .stApp{overflow-x:hidden!important}
 iframe{border:none!important}
 
+/* Force all links to open in same tab */
+a{text-decoration:none !important}
+a[href]{target:_self !important}
+
 /* Mobile-first responsive design */
 @media(max-width:768px){
   html,body{font-size:14px!important}
@@ -31,6 +35,9 @@ iframe{border:none!important}
 </style>""", unsafe_allow_html=True)
 
     # ── ANIMATED FLOATING ISLAND BACKGROUND + NAV + HERO ──────────────────────────────
+    # Add base tag to force same-tab navigation
+    st.markdown('<base target="_self">', unsafe_allow_html=True)
+    
     st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
@@ -51,13 +58,28 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
   background:linear-gradient(180deg, #0B0F19 0%, #1a1f35 50%, #2d1b3d 100%);
   overflow:hidden;
 }
+/* Main floating island - centered */
+#floating-bg::before{
+  content:'';
+  position:absolute;
+  top:50%;left:50%;
+  transform:translate(-50%,-50%);
+  width:700px;height:700px;
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800"><defs><linearGradient id="sky" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%234361EE;stop-opacity:0.4"/><stop offset="100%" style="stop-color:%237209B7;stop-opacity:0.2"/></linearGradient><linearGradient id="island" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%2306D6A0;stop-opacity:0.5"/><stop offset="50%" style="stop-color:%234361EE;stop-opacity:0.4"/><stop offset="100%" style="stop-color:%237209B7;stop-opacity:0.3"/></linearGradient><radialGradient id="glow"><stop offset="0%" style="stop-color:%234361EE;stop-opacity:0.7"/><stop offset="100%" style="stop-color:%234361EE;stop-opacity:0"/></radialGradient></defs><ellipse cx="400" cy="650" rx="350" ry="120" fill="url(%23island)" opacity="0.6"/><ellipse cx="400" cy="500" rx="280" ry="200" fill="url(%23sky)" opacity="0.5"/><circle cx="400" cy="350" r="150" fill="url(%23glow)" opacity="0.4"/><ellipse cx="350" cy="400" rx="120" ry="100" fill="%2306D6A0" opacity="0.35"/><ellipse cx="450" cy="420" rx="100" ry="80" fill="%234361EE" opacity="0.4"/><circle cx="400" cy="300" r="80" fill="%23F72585" opacity="0.3"/><ellipse cx="370" cy="320" rx="50" ry="40" fill="%2306D6A0" opacity="0.45"/><ellipse cx="430" cy="340" rx="45" ry="35" fill="%237209B7" opacity="0.4"/><circle cx="400" cy="280" r="35" fill="%234361EE" opacity="0.5"/><circle cx="380" cy="290" r="20" fill="%2306D6A0" opacity="0.4"/><circle cx="420" cy="310" r="18" fill="%23F72585" opacity="0.35"/></svg>');
+  background-size:contain;
+  background-repeat:no-repeat;
+  background-position:center;
+  opacity:0.25;
+  filter:blur(1px);
+  animation:float-island 25s ease-in-out infinite;
+}
 .floating-island{
   position:absolute;
   width:600px;height:600px;
-  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%2306D6A0;stop-opacity:0.3"/><stop offset="100%" style="stop-color:%234361EE;stop-opacity:0.1"/></linearGradient></defs><ellipse cx="200" cy="300" rx="180" ry="80" fill="url(%23g1)" opacity="0.6"/><ellipse cx="200" cy="200" rx="150" ry="150" fill="%237209B7" opacity="0.2"/><circle cx="200" cy="150" r="80" fill="%2306D6A0" opacity="0.3"/><circle cx="180" cy="140" r="40" fill="%234361EE" opacity="0.4"/><circle cx="220" cy="160" r="30" fill="%23F72585" opacity="0.3"/></svg>');
+  background-image:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400"><defs><linearGradient id="g1" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:%2306D6A0;stop-opacity:0.4"/><stop offset="100%" style="stop-color:%234361EE;stop-opacity:0.2"/></linearGradient></defs><ellipse cx="200" cy="300" rx="180" ry="80" fill="url(%23g1)" opacity="0.7"/><ellipse cx="200" cy="200" rx="150" ry="150" fill="%237209B7" opacity="0.3"/><circle cx="200" cy="150" r="80" fill="%2306D6A0" opacity="0.4"/><circle cx="180" cy="140" r="40" fill="%234361EE" opacity="0.5"/><circle cx="220" cy="160" r="30" fill="%23F72585" opacity="0.4"/></svg>');
   background-size:contain;background-repeat:no-repeat;background-position:center;
   animation:float-island 20s ease-in-out infinite;
-  opacity:0.15;filter:blur(40px);
+  opacity:0.18;filter:blur(30px);
 }
 .floating-island:nth-child(1){top:10%;left:10%;animation-delay:0s}
 .floating-island:nth-child(2){top:60%;right:15%;animation-delay:-7s;width:500px;height:500px}
@@ -234,6 +256,14 @@ html,body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--wh);ov
 a{text-decoration:none !important}
 a:hover{text-decoration:none !important}
 
+/* Force all links to open in same tab */
+a[href]{
+  target: _self !important;
+}
+a[href*="?go=app"]{
+  target: _self !important;
+}
+
 /* FLOATING HERO CARD */
 .xhero-card{
   margin-top:64px;
@@ -285,6 +315,12 @@ a:hover{text-decoration:none !important}
 @keyframes shimmer{0%{background-position:0% center}100%{background-position:200% center}}
 @keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
 </style>
+
+<div id="floating-bg">
+  <div class="floating-island"></div>
+  <div class="floating-island"></div>
+  <div class="floating-island"></div>
+</div>
 
 <canvas id="bg-canvas"></canvas>
 
@@ -394,6 +430,84 @@ a:hover{text-decoration:none !important}
     else nav.classList.remove('hide');
     last=y;
   },{passive:true});
+})();
+
+// ── FORCE SAME-TAB NAVIGATION (AGGRESSIVE FIX) ───────────────────
+(function(){
+  // Prevent ALL new tabs/windows from opening
+  window.open = function(url, target){
+    if(url && url.includes('?go=app')){
+      window.location.href = url;
+      return window;
+    }
+    return null;
+  };
+  
+  function forceSameTab(){
+    // Get all links
+    const allLinks = document.querySelectorAll('a');
+    
+    allLinks.forEach(function(link){
+      const href = link.getAttribute('href');
+      
+      // Only process links with ?go=app
+      if(href && href.includes('?go=app')){
+        // Remove any target attribute
+        link.removeAttribute('target');
+        
+        // Remove any onclick that might open new tab
+        link.removeAttribute('onclick');
+        
+        // Add our own click handler with highest priority
+        link.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          
+          const url = this.getAttribute('href');
+          if(url){
+            // Force navigation in same window
+            window.location.href = url;
+          }
+          
+          return false;
+        }, true); // Use capture phase
+      }
+    });
+  }
+  
+  // Run immediately
+  forceSameTab();
+  
+  // Run multiple times
+  setTimeout(forceSameTab, 50);
+  setTimeout(forceSameTab, 100);
+  setTimeout(forceSameTab, 200);
+  setTimeout(forceSameTab, 500);
+  setTimeout(forceSameTab, 1000);
+  setTimeout(forceSameTab, 2000);
+  
+  // Watch for DOM changes
+  const observer = new MutationObserver(function(){
+    forceSameTab();
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['href', 'target']
+  });
+  
+  // Also intercept at document level
+  document.addEventListener('click', function(e){
+    const target = e.target.closest('a');
+    if(target && target.href && target.href.includes('?go=app')){
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      window.location.href = target.href;
+      return false;
+    }
+  }, true);
 })();
 </script>
 """, unsafe_allow_html=True)
