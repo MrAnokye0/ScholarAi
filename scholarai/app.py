@@ -39,7 +39,8 @@ from exporter  import generate_pdf, generate_docx
 from reference_formatter import STYLES, format_all_references
 from utils import (new_session_id, format_bytes, estimate_read_time,
                    now_str, validate_api_key, test_api_connection, slugify)
-import database as db
+# Use PostgreSQL-compatible database adapter (auto-detects PostgreSQL or SQLite)
+import database_postgres as db
 import mailer
 
 
