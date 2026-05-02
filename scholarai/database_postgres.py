@@ -49,7 +49,9 @@ def init_db():
                     password_hash TEXT,
                     is_verified INTEGER DEFAULT 0,
                     verification_code TEXT,
+                    verification_code_sent_at DOUBLE PRECISION DEFAULT 0,
                     reset_token TEXT,
+                    reset_token_sent_at DOUBLE PRECISION DEFAULT 0,
                     tier TEXT DEFAULT 'free',
                     credits_used INTEGER DEFAULT 0,
                     remember_token TEXT,
@@ -95,7 +97,9 @@ def init_db():
                     password_hash TEXT,
                     is_verified INTEGER DEFAULT 0,
                     verification_code TEXT,
+                    verification_code_sent_at REAL DEFAULT 0,
                     reset_token TEXT,
+                    reset_token_sent_at REAL DEFAULT 0,
                     tier TEXT DEFAULT 'free',
                     credits_used INTEGER DEFAULT 0,
                     remember_token TEXT,
@@ -128,6 +132,32 @@ def init_db():
         
         conn.commit()
 
+        # ── Migrations: add new columns to existing databases ──────────────
+        if not USE_POSTGRES:
+            cursor.execute("PRAGMA table_info(users)")
+            existing = {row[1] for row in cursor.fetchall()}
+            migrations = {
+                "verification_code_sent_at": "ALTER TABLE users ADD COLUMN verification_code_sent_at REAL DEFAULT 0",
+                "reset_token_sent_at":       "ALTER TABLE users ADD COLUMN reset_token_sent_at REAL DEFAULT 0",
+            }
+            for col, sql in migrations.items():
+                if col not in existing:
+                    cursor.execute(sql)
+            conn.commit()
+        else:
+            # PostgreSQL: add columns if missing (idempotent)
+            for col, col_type in [
+                ("verification_code_sent_at", "DOUBLE PRECISION DEFAULT 0"),
+                ("reset_token_sent_at",       "DOUBLE PRECISION DEFAULT 0"),
+            ]:
+                try:
+                    cursor.execute(
+                        f"ALTER TABLE users ADD COLUMN {col} {col_type}"
+                    )
+                    conn.commit()
+                except Exception:
+                    conn.rollback()  # column already exists — ignore
+
 
 def hash_password(password: str) -> str:
     """Hash password with SHA-256"""
@@ -141,19 +171,21 @@ def verify_password_hash(password: str, stored_hash: str) -> bool:
 
 def create_user(username: str, email: str, password: str, verification_code: str) -> tuple[bool, str]:
     """Create a new user"""
+    import time as _time
+    now = _time.time()
     with get_conn() as conn:
         cursor = conn.cursor()
         try:
             if USE_POSTGRES:
                 cursor.execute("""
-                    INSERT INTO users (username, email, password_hash, verification_code)
-                    VALUES (%s, %s, %s, %s)
-                """, (username, email, hash_password(password), verification_code))
+                    INSERT INTO users (username, email, password_hash, verification_code, verification_code_sent_at)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (username, email, hash_password(password), verification_code, now))
             else:
                 cursor.execute("""
-                    INSERT INTO users (username, email, password_hash, verification_code)
-                    VALUES (?, ?, ?, ?)
-                """, (username, email, hash_password(password), verification_code))
+                    INSERT INTO users (username, email, password_hash, verification_code, verification_code_sent_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (username, email, hash_password(password), verification_code, now))
             conn.commit()
             return True, "Account created successfully."
         except Exception as e:
@@ -213,24 +245,40 @@ def update_user_verification(username: str, is_verified: bool = True):
 
 
 def update_verification_code(email: str, code: str):
-    """Update verification code"""
+    """Update verification code and record the time it was issued."""
+    import time as _time
+    now = _time.time()
     with get_conn() as conn:
         cursor = conn.cursor()
         if USE_POSTGRES:
-            cursor.execute("UPDATE users SET verification_code = %s WHERE email = %s", (code, email))
+            cursor.execute(
+                "UPDATE users SET verification_code = %s, verification_code_sent_at = %s WHERE email = %s",
+                (code, now, email),
+            )
         else:
-            cursor.execute("UPDATE users SET verification_code = ? WHERE email = ?", (code, email))
+            cursor.execute(
+                "UPDATE users SET verification_code = ?, verification_code_sent_at = ? WHERE email = ?",
+                (code, now, email),
+            )
         conn.commit()
 
 
 def update_reset_token(email: str, token: str | None):
-    """Update password reset token"""
+    """Update password reset token and record the time it was issued."""
+    import time as _time
+    now = _time.time() if token else 0
     with get_conn() as conn:
         cursor = conn.cursor()
         if USE_POSTGRES:
-            cursor.execute("UPDATE users SET reset_token = %s WHERE email = %s", (token, email))
+            cursor.execute(
+                "UPDATE users SET reset_token = %s, reset_token_sent_at = %s WHERE email = %s",
+                (token, now, email),
+            )
         else:
-            cursor.execute("UPDATE users SET reset_token = ? WHERE email = ?", (token, email))
+            cursor.execute(
+                "UPDATE users SET reset_token = ?, reset_token_sent_at = ? WHERE email = ?",
+                (token, now, email),
+            )
         conn.commit()
 
 

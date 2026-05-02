@@ -9,6 +9,13 @@ scholarai/.env
 
 # Database
 scholarai/data/scholarai.db
+data/scholarai.db
+*.db
+
+# Temp fix scripts
+scholarai/fix_*.py
+scholarai/run_fix.py
+scholarai/app_restored.py
 
 # VS Code
 .vscode/

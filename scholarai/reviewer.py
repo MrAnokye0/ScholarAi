@@ -1,6 +1,6 @@
 """
 reviewer.py — Core AI pipeline: metadata extraction → review generation → citation formatting.
-Supports both OpenAI and Google Gemini.
+Supports both OpenAI and Google Gemini (new google-genai SDK).
 """
 
 import json
@@ -10,70 +10,125 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Optional, Callable, Any
 
 from openai import OpenAI
-import google.generativeai as genai
 
 from extractor import truncate_text, get_first_chars
 from prompts import build_metadata_prompt, build_review_prompt
 from reference_formatter import format_all_references, format_intext
 
-GEMINI_FALLBACK_MODELS = [
-    "models/gemini-1.5-flash",  # Try with models/ prefix first
+# New Gemini SDK (google-genai)
+try:
+    from google import genai as _new_genai
+    _NEW_SDK = True
+except ImportError:
+    _NEW_SDK = False
+
+# Fallback: old SDK
+try:
+    import google.generativeai as _old_genai
+    _OLD_SDK = True
+except ImportError:
+    _OLD_SDK = False
+
+# Preferred model order — newest/fastest first
+GEMINI_MODELS = [
+    "gemini-2.0-flash",
     "gemini-1.5-flash",
-    "models/gemini-1.5-pro",
     "gemini-1.5-pro",
-    "models/gemini-pro",
     "gemini-pro",
-    "gemini-1.5-flash-latest",
-    "gemini-1.5-pro-latest",
 ]
 
 
-def _generate_with_gemini_fallback(client: Any, prompt: str) -> str:
-    """Try provided Gemini client, then fall back across common model IDs."""
+def _call_gemini(api_key: str, prompt: str) -> str:
+    """Call Gemini using the new SDK, falling back to old SDK if needed."""
     errors = []
-    try:
-        response = client.generate_content(prompt)
-        text = getattr(response, "text", "") or ""
-        if text.strip():
-            return text.strip()
-        raise RuntimeError("Empty response text from Gemini.")
-    except Exception as e:
-        errors.append(str(e))
 
-    for model_name in GEMINI_FALLBACK_MODELS:
+    # ── New SDK (google-genai) ─────────────────────────────────────
+    if _NEW_SDK:
         try:
-            fallback_client = genai.GenerativeModel(model_name)
-            response = fallback_client.generate_content(prompt)
-            text = getattr(response, "text", "") or ""
-            if text.strip():
-                return text.strip()
-            errors.append(f"{model_name}: Empty response")
+            client = _new_genai.Client(api_key=api_key)
+            for model in GEMINI_MODELS:
+                try:
+                    resp = client.models.generate_content(
+                        model=model, contents=prompt
+                    )
+                    text = resp.text or ""
+                    if text.strip():
+                        return text.strip()
+                except Exception as e:
+                    err = str(e)
+                    errors.append(f"{model}: {err}")
+                    # Stop trying if quota exhausted
+                    if "429" in err or "RESOURCE_EXHAUSTED" in err:
+                        raise RuntimeError(
+                            "Gemini API quota exhausted. "
+                            "Please wait a minute and try again, or check your quota at "
+                            "https://ai.dev/rate-limit"
+                        )
+                    continue
+        except RuntimeError:
+            raise
         except Exception as e:
-            errors.append(f"{model_name}: {e}")
+            errors.append(f"new_sdk: {e}")
 
-    # Last resort: discover models available to this API key/project and try those.
-    try:
-        discovered = []
-        for m in genai.list_models():
-            name = getattr(m, "name", "")
-            methods = getattr(m, "supported_generation_methods", []) or []
-            if "generateContent" in methods and "gemini" in name.lower():
-                # names from list_models come as "models/<id>"
-                discovered.append(name.replace("models/", ""))
-        for model_name in discovered:
+    # ── Old SDK fallback (google-generativeai) ─────────────────────
+    if _OLD_SDK:
+        try:
+            _old_genai.configure(api_key=api_key)
+            for model in GEMINI_MODELS:
+                try:
+                    m = _old_genai.GenerativeModel(model)
+                    resp = m.generate_content(prompt)
+                    text = getattr(resp, "text", "") or ""
+                    if text.strip():
+                        return text.strip()
+                except Exception as e:
+                    errors.append(f"old/{model}: {e}")
+                    continue
+        except Exception as e:
+            errors.append(f"old_sdk: {e}")
+
+    raise RuntimeError("Gemini failed: " + " | ".join(errors[:3]))
+
+
+def _generate_with_gemini_fallback(client: Any, prompt: str) -> str:
+    """
+    Compatibility wrapper — client can be:
+    - a string (API key) → use _call_gemini directly
+    - old GenerativeModel instance → call generate_content
+    - new genai.Client → call models.generate_content
+    """
+    # If client is an API key string
+    if isinstance(client, str):
+        return _call_gemini(client, prompt)
+
+    # New SDK client
+    if _NEW_SDK and isinstance(client, _new_genai.Client):
+        for model in GEMINI_MODELS:
             try:
-                dynamic_client = genai.GenerativeModel(model_name)
-                response = dynamic_client.generate_content(prompt)
-                text = getattr(response, "text", "") or ""
+                resp = client.models.generate_content(model=model, contents=prompt)
+                text = resp.text or ""
                 if text.strip():
                     return text.strip()
-                errors.append(f"{model_name}: Empty response")
             except Exception as e:
-                errors.append(f"{model_name}: {e}")
-    except Exception as e:
-        errors.append(f"list_models: {e}")
+                if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+                    raise RuntimeError(
+                        "Gemini API quota exhausted. Wait a minute and try again."
+                    )
+                continue
 
-    raise RuntimeError("Gemini fallback failed: " + " | ".join(errors[:4]))
+    # Old SDK GenerativeModel instance
+    try:
+        resp = client.generate_content(prompt)
+        text = getattr(resp, "text", "") or ""
+        if text.strip():
+            return text.strip()
+    except Exception as e:
+        if "429" in str(e) or "RESOURCE_EXHAUSTED" in str(e):
+            raise RuntimeError(
+                "Gemini API quota exhausted. Wait a minute and try again."
+            )
+
+    raise RuntimeError("Gemini returned empty response")
 
 
 def extract_metadata(client: Any, text: str, provider: str = "openai") -> dict:

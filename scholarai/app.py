@@ -26,7 +26,7 @@ load_dotenv(dotenv_path=env_path)
 # ── Page config (must be first Streamlit call) ─────────────────────
 st.set_page_config(
     page_title="ScholarAI — Literature Review Generator",
-    page_icon="🎓",
+    page_icon="≡ƒÄô",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -56,7 +56,7 @@ def render_paywall():
     st.markdown("<br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("🚀 Buy Weekly", key="buy_w", use_container_width=True):
+        if st.button("≡ƒÜÇ Buy Weekly", key="buy_w", use_container_width=True):
             db.update_user_tier(st.session_state.auth_username, "premium")
             st.session_state.user_tier = "premium"
             st.session_state.show_paywall = False
@@ -70,7 +70,7 @@ def render_paywall():
             st.success("✅ WELCOME TO SCHOLARAI PLATINUM!")
             st.rerun()
     with col3:
-        if st.button("👑 Buy Yearly", key="buy_y", use_container_width=True):
+        if st.button("≡ƒææ Buy Yearly", key="buy_y", use_container_width=True):
             db.update_user_tier(st.session_state.auth_username, "premium")
             st.session_state.user_tier = "premium"
             st.session_state.show_paywall = False
@@ -364,729 +364,333 @@ if st.session_state.error:
 # ══════════════════════════════════════════════════════════════════
 #  HOME PAGE GATE
 # ══════════════════════════════════════════════════════════════════
-# Handle ?go=app BEFORE rendering home — skips the heavy home render entirely
-if st.query_params.get("go") == "app":
+# ?go=app skips home and goes straight to auth
+if st.query_params.get('go') == 'app':
     st.query_params.clear()
     st.session_state.show_home = False
 
-if st.session_state.get("show_home", True) and not st.session_state.user_authenticated:
+# Show home page if not authenticated and show_home is True
+if st.session_state.get('show_home', True) and not st.session_state.user_authenticated:
     render_home()
     st.stop()
 
-
-# ── Password Reset Card ────────────────────────────────────────────────────
-def _build_reset_card(step, email, remaining, err):
-    mm = str(remaining // 60).zfill(2)
-    ss = str(remaining % 60).zfill(2)
-    def sc(st_): return "active" if step == st_ else ("done" if (st_ == "otp" and step in ("password","success")) or (st_ == "password" and step == "success") else "idle")
-    def si(st_): return '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>' if (st_ == "otp" and step in ("password","success")) or (st_ == "password" and step == "success") or (st_ == "success" and step == "success") else {"otp":"1","password":"2","success":"3"}[st_]
-    c1 = "done" if step in ("password","success") else ""
-    c2 = "done" if step == "success" else ""
-    ov, pv, sv = ("flex" if step=="otp" else "none"), ("flex" if step=="password" else "none"), ("flex" if step=="success" else "none")
-    return f"""<!DOCTYPE html><html><head><meta charset="UTF-8">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
-:root{{--p:#4361EE;--p2:#7209B7;--s:#10B981;--bg:#020617;--card:rgba(13,20,40,.95);--tx:#F8FAFC;--mu:#94A3B8;--br:rgba(255,255,255,.1);--glow:rgba(67,97,238,.4)}}
-html,body{{font-family:'Plus Jakarta Sans',sans-serif;background:transparent;height:100%;margin:0;padding:0;overflow:hidden}}
-.fullscreen{{width:100%;min-height:100vh;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px 0}}
-body::before{{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 20% 60%,rgba(67,97,238,.13),transparent 55%),radial-gradient(ellipse at 80% 20%,rgba(114,9,183,.1),transparent 50%);pointer-events:none;z-index:9998}}
-.card{{background:var(--card);backdrop-filter:blur(28px);border:1px solid var(--br);border-radius:28px;padding:40px 36px;width:460px;max-width:calc(100vw - 24px);box-shadow:0 32px 64px rgba(0,0,0,.55);position:relative;overflow:hidden;animation:up .4s cubic-bezier(.16,1,.3,1) both}}
-.card::before{{content:'';position:absolute;top:0;left:12%;right:12%;height:1px;background:linear-gradient(90deg,transparent,rgba(99,120,255,.55),transparent)}}
-@keyframes up{{from{{opacity:0;transform:translateY(20px) scale(.97)}}to{{opacity:1;transform:none}}}}
-.stepper{{display:flex;align-items:center;justify-content:center;margin-bottom:32px}}
-.si{{display:flex;flex-direction:column;align-items:center;gap:5px}}
-.sc{{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:800;transition:.3s}}
-.sc.active{{background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;box-shadow:0 0 16px var(--glow)}}
-.sc.done{{background:var(--s);color:#fff;box-shadow:0 0 12px rgba(16,185,129,.4)}}
-.sc.idle{{background:rgba(255,255,255,.06);color:var(--mu);border:1px solid var(--br)}}
-.sl{{font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mu)}}
-.sl.active{{color:#818cf8}}.sl.done{{color:var(--s)}}
-.conn{{width:44px;height:2px;background:var(--br);margin:0 4px;margin-bottom:20px;transition:.3s}}
-.conn.done{{background:var(--s)}}
-.logo{{width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,var(--p),var(--p2));display:flex;align-items:center;justify-content:center;margin:0 auto 18px;box-shadow:0 0 22px var(--glow)}}
-h1{{font-size:1.55rem;font-weight:800;color:var(--tx);margin-bottom:5px;letter-spacing:-.02em;text-align:center}}
-.sub{{color:var(--mu);font-size:.88rem;margin-bottom:24px;line-height:1.55;text-align:center}}
-.view{{display:flex;flex-direction:column;animation:fi .3s ease both}}
-@keyframes fi{{from{{opacity:0;transform:translateY(8px)}}to{{opacity:1;transform:none}}}}
-.otp-row{{display:flex;gap:9px;justify-content:center;margin-bottom:6px}}
-.ob{{width:50px;height:60px;border-radius:13px;border:2px solid var(--br);background:rgba(255,255,255,.04);color:#818cf8;font-weight:800;font-size:1.35rem;text-align:center;outline:none;transition:.2s;caret-color:var(--p);font-family:inherit}}
-.ob:focus{{border-color:var(--p);background:rgba(67,97,238,.1);box-shadow:0 0 0 3px rgba(67,97,238,.2),0 0 14px rgba(67,97,238,.25)}}
-.ob.filled{{border-color:rgba(129,140,248,.45);background:rgba(67,97,238,.07)}}
-.rrow{{font-size:.83rem;color:var(--mu);margin-bottom:20px;text-align:center;min-height:20px}}
-.rbtn{{color:var(--p);font-weight:700;cursor:pointer;background:none;border:none;font-family:inherit;font-size:inherit;padding:0;display:none}}
-.field{{text-align:left;margin-bottom:16px}}
-.field label{{display:block;font-size:.8rem;font-weight:700;color:var(--mu);margin-bottom:6px}}
-.fw{{position:relative}}
-.field input{{width:100%;padding:12px 42px 12px 13px;border-radius:11px;border:1.5px solid var(--br);background:rgba(255,255,255,.04);color:var(--tx);font-size:.93rem;font-family:inherit;outline:none;transition:.2s}}
-.field input:focus{{border-color:var(--p);background:rgba(67,97,238,.07);box-shadow:0 0 0 3px rgba(67,97,238,.14)}}
-.field input::placeholder{{color:rgba(148,163,184,.45)}}
-.eye{{position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--mu);background:none;border:none;font-size:.95rem;padding:0;transition:.2s}}
-.eye:hover{{color:var(--tx)}}
-.sbar{{height:3px;border-radius:2px;margin-top:5px;transition:all .3s;background:var(--br);width:0}}
-.sbar.w{{background:#ef4444;width:25%}}.sbar.f{{background:#f59e0b;width:55%}}.sbar.g{{background:#3b82f6;width:80%}}.sbar.s{{background:var(--s);width:100%}}
-.shint{{font-size:.7rem;color:var(--mu);margin-top:3px;min-height:14px}}
-.err{{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:#fca5a5;padding:9px 13px;border-radius:9px;font-size:.82rem;margin-bottom:14px;animation:shake .35s ease;display:none;text-align:left}}
-@keyframes shake{{0%,100%{{transform:translateX(0)}}25%{{transform:translateX(-4px)}}75%{{transform:translateX(4px)}}}}
-.btn{{width:100%;padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--p),var(--p2));color:#fff;font-weight:800;font-size:.97rem;font-family:inherit;box-shadow:0 6px 18px rgba(67,97,238,.35);transition:.25s;position:relative;overflow:hidden}}
-.btn::before{{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.14),transparent);transition:.5s}}
-.btn:hover{{transform:translateY(-2px);box-shadow:0 10px 26px rgba(67,97,238,.45)}}.btn:hover::before{{left:100%}}
-.btn:active{{transform:translateY(0)}}.btn:disabled{{opacity:.4;cursor:not-allowed;transform:none;box-shadow:none}}
-.back{{display:block;text-align:center;margin-top:15px;color:var(--mu);font-size:.82rem;font-weight:600;cursor:pointer;background:none;border:none;font-family:inherit;width:100%;transition:.2s}}
-.back:hover{{color:var(--tx)}}
-.cring{{width:76px;height:76px;border-radius:50%;background:rgba(16,185,129,.12);border:2px solid rgba(16,185,129,.4);display:flex;align-items:center;justify-content:center;margin:0 auto 20px;animation:pop .5s cubic-bezier(.16,1,.3,1) both}}
-@keyframes pop{{from{{transform:scale(0);opacity:0}}to{{transform:scale(1);opacity:1}}}}
-.stitle{{font-size:1.45rem;font-weight:800;color:var(--tx);margin-bottom:7px;text-align:center}}
-.ssub{{color:var(--mu);font-size:.88rem;margin-bottom:28px;line-height:1.6;text-align:center}}
-.btns{{width:100%;padding:14px;border-radius:13px;border:none;cursor:pointer;background:linear-gradient(135deg,var(--s),#059669);color:#fff;font-weight:800;font-size:.97rem;font-family:inherit;box-shadow:0 6px 18px rgba(16,185,129,.3);transition:.25s}}
-.btns:hover{{transform:translateY(-2px);box-shadow:0 10px 26px rgba(16,185,129,.4)}}
-</style></head><body>
-<div class="fullscreen">
-<div class="card">
-  <div class="stepper">
-    <div class="si"><div class="sc {sc('otp')}">{si('otp')}</div><div class="sl {sc('otp')}">Verify</div></div>
-    <div class="conn {c1}"></div>
-    <div class="si"><div class="sc {sc('password')}">{si('password')}</div><div class="sl {sc('password')}">Update</div></div>
-    <div class="conn {c2}"></div>
-    <div class="si"><div class="sc {sc('success')}">{si('success')}</div><div class="sl {sc('success')}">Done</div></div>
-  </div>
-  <div class="logo"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
-
-  <div class="view" style="display:{ov}">
-    <h1>Verify Code</h1>
-    <p class="sub">Enter the 6-digit code sent to<br><strong style="color:#818cf8">{email}</strong></p>
-    <div class="otp-row">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-      <input class="ob" type="text" maxlength="1" inputmode="numeric">
-    </div>
-    <div class="rrow" id="rrow">Resend in <span id="tmr">{mm}:{ss}</span><button class="rbtn" id="rbtn">Resend Code</button></div>
-    <div class="err" id="oerr">{err}</div>
-    <button class="btn" id="vbtn" disabled>Verify Code</button>
-    <button class="back" id="bkotp">← Back to Login</button>
-  </div>
-
-  <div class="view" style="display:{pv}">
-    <h1>New Password</h1>
-    <p class="sub">Choose a strong password for your account</p>
-    <div class="err" id="perr">{err}</div>
-    <div class="field"><label>New Password</label><div class="fw"><input type="password" id="np" placeholder="Min. 8 characters"><button class="eye" id="e1" type="button">&#128065;</button></div><div class="sbar" id="sbar"></div><div class="shint" id="shint"></div></div>
-    <div class="field"><label>Confirm Password</label><div class="fw"><input type="password" id="cp" placeholder="Repeat your password"><button class="eye" id="e2" type="button">&#128065;</button></div></div>
-    <button class="btn" id="ubtn">Update Password</button>
-    <button class="back" id="bkpass">← Back</button>
-  </div>
-
-  <div class="view" style="display:{sv}">
-    <div class="cring"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
-    <div class="stitle">Password Updated!</div>
-    <p class="ssub">Your password has been changed successfully.<br>Sign in with your new password.</p>
-    <button class="btns" id="sibtn">Go to Sign In</button>
-  </div>
-</div>
-<script>
-(function(){{
-  function bridge(action,fields){{
-    var p=window.parent.document,ins=p.querySelectorAll('input'),btns=p.querySelectorAll('button');
-    var km={{otp:'PR_OTP',np:'PR_NP',cp:'PR_CP'}};
-    if(fields) Object.keys(fields).forEach(function(k){{
-      for(var i=0;i<ins.length;i++){{
-        var w=ins[i].closest('[data-testid="stTextInput"]');
-        if(!w) continue;
-        var l=w.querySelector('label');
-        if(l&&l.textContent.includes(km[k])){{ins[i].value=fields[k];ins[i].dispatchEvent(new Event('input',{{bubbles:true}}));break;}}
-      }}
-    }});
-    var lm={{verify:'PR_VERIFY',update:'PR_UPDATE',resend:'PR_RESEND',login:'PR_LOGIN'}};
-    setTimeout(function(){{
-      var label = lm[action];
-      for(var b=0;b<btns.length;b++){{
-        var p=btns[b].querySelector('p');
-        var txt=p?p.textContent.trim():btns[b].innerText.trim();
-        if(txt===label){{btns[b].click();break;}}
-      }}
-    }},160);
-  }}
-  var boxes=document.querySelectorAll('.ob');
-  var vbtn=document.getElementById('vbtn');
-  var rbtn=document.getElementById('rbtn');
-  var rrow=document.getElementById('rrow');
-  var oerr=document.getElementById('oerr');
-  var bkotp=document.getElementById('bkotp');
-  if(oerr&&oerr.textContent.trim())oerr.style.display='block';
-  if(boxes.length){{
-    boxes[0].focus();
-    boxes.forEach(function(b,i){{
-      b.oninput=function(){{
-        b.value=b.value.replace(/[^0-9]/g,'');
-        b.classList.toggle('filled',!!b.value);
-        if(b.value&&i<5)boxes[i+1].focus();
-        var full=Array.from(boxes).every(function(x){{return x.value;}});
-        vbtn.disabled=!full;
-        if(full){{vbtn.disabled=true;vbtn.textContent='Verifying\u2026';bridge('verify',{{otp:Array.from(boxes).map(function(x){{return x.value;}}).join('')}});}}
-      }};
-      b.onkeydown=function(e){{
-        if(e.key==='Backspace'&&!b.value&&i>0)boxes[i-1].focus();
-        if(e.key==='ArrowLeft'&&i>0)boxes[i-1].focus();
-        if(e.key==='ArrowRight'&&i<5)boxes[i+1].focus();
-      }};
-      b.onpaste=function(e){{
-        e.preventDefault();
-        var t=(e.clipboardData||window.clipboardData).getData('text').replace(/[^0-9]/g,'').slice(0,6);
-        t.split('').forEach(function(ch,j){{if(boxes[j]){{boxes[j].value=ch;boxes[j].classList.add('filled');}}}});
-        if(t.length===6){{boxes[5].focus();vbtn.disabled=false;}}
-      }};
-    }});
-    var rem={remaining};
-    var tmr=document.getElementById('tmr');
-    function tick(){{
-      if(rem<=0){{if(rrow){{rrow.innerHTML='';rrow.appendChild(rbtn);rbtn.style.display='inline';}}return;}}
-      if(tmr)tmr.textContent=String(Math.floor(rem/60)).padStart(2,'0')+':'+String(rem%60).padStart(2,'0');
-      rem--;setTimeout(tick,1000);
-    }}
-    tick();
-    if(rbtn)rbtn.onclick=function(){{bridge('resend');}};
-    if(bkotp)bkotp.onclick=function(){{bridge('login');}};
-  }}
-  var np=document.getElementById('np'),cp=document.getElementById('cp');
-  var ubtn=document.getElementById('ubtn'),perr=document.getElementById('perr');
-  var sbar=document.getElementById('sbar'),shint=document.getElementById('shint');
-  var bkpass=document.getElementById('bkpass');
-  if(perr&&perr.textContent.trim())perr.style.display='block';
-  if(np)np.focus();
-  function strength(p){{var s=0;if(p.length>=8)s++;if(p.length>=12)s++;if(/[A-Z]/.test(p))s++;if(/[a-z]/.test(p))s++;if(/[0-9]/.test(p))s++;if(/[^A-Za-z0-9]/.test(p))s++;return s;}}
-  if(np)np.oninput=function(){{var s=strength(np.value);var c=s<=1?'w':s<=3?'f':s<=4?'g':'s';var t=s<=1?'Weak':s<=3?'Fair':s<=4?'Good':'Strong';if(sbar)sbar.className='sbar '+c;if(shint)shint.textContent=np.value?t:'';}}
-  var e1=document.getElementById('e1'),e2=document.getElementById('e2');
-  if(e1)e1.onclick=function(){{np.type=np.type==='password'?'text':'password';e1.innerHTML=np.type==='password'?'&#128065;':'&#128584;';}};
-  if(e2)e2.onclick=function(){{cp.type=cp.type==='password'?'text':'password';e2.innerHTML=cp.type==='password'?'&#128065;':'&#128584;';}};
-  if(ubtn)ubtn.onclick=function(){{
-    if(np.value.length<8){{perr.style.display='block';perr.textContent='\u26a0 Password must be at least 8 characters.';return;}}
-    if(np.value!==cp.value){{perr.style.display='block';perr.textContent='\u26a0 Passwords do not match.';return;}}
-    perr.style.display='none';ubtn.disabled=true;ubtn.textContent='Updating\u2026';
-    bridge('update',{{np:np.value,cp:cp.value}});
-  }};
-  if(bkpass)bkpass.onclick=function(){{bridge('login');}};
-  var sibtn=document.getElementById('sibtn');
-  if(sibtn)sibtn.onclick=function(){{bridge('login');}};
-}})();
-</script></div></body></html>"""
-
-# ══════════════════════════════════════════════════════════════════
-#  USER AUTHENTICATION GATE
-# ══════════════════════════════════════════════════════════════════
 if not st.session_state.user_authenticated:
 
-    # ── Handle Terms and Privacy pages ─────────────────────────────
-    page_param = st.query_params.get("page")
-    if page_param == "terms":
-        st.markdown("""
-        <style>
-        .stApp{background:#020617!important}
+    # ── Terms / Privacy pages ──────────────────────────────────────
+    _page = st.query_params.get("page")
+    if _page in ("terms", "privacy"):
+        st.markdown("""<style>
+        .stApp{background:#0B0F19!important}
         [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
-        .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-        </style>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col2:
-            st.markdown("### 📜 Terms of Use")
-            st.markdown("**Last Updated:** April 16, 2026")
-            st.markdown("---")
-            
-            st.markdown("""
-            #### 1. Acceptance of Terms
-            By accessing and using ScholarAI, you agree to be bound by these Terms of Use.
-            
-            #### 2. Use of Service
-            ScholarAI is designed for academic research purposes only. You agree to:
-            - Use the service ethically and responsibly
-            - Provide accurate information during registration
-            - Review all AI-generated content before academic submission
-            - Not use the service for any illegal or unauthorized purpose
-            
-            #### 3. User Responsibilities
-            - You are responsible for maintaining the confidentiality of your account
-            - You must provide accurate and complete information
-            - You agree to review and verify all AI-generated content
-            - You acknowledge that AI-generated content may contain errors
-            
-            #### 4. Intellectual Property
-            - You retain all rights to content you upload
-            - ScholarAI retains rights to the platform and its technology
-            - Generated content is provided for your use under these terms
-            
-            #### 5. Disclaimer
-            - AI-generated content should always be reviewed before submission
-            - ScholarAI is not responsible for academic consequences of using generated content
-            - The service is provided "as is" without warranties
-            
-            #### 6. Limitation of Liability
-            ScholarAI shall not be liable for any indirect, incidental, or consequential damages.
-            
-            #### 7. Changes to Terms
-            We reserve the right to modify these terms at any time. Continued use constitutes acceptance.
-            
-            #### 8. Contact
-            For questions about these terms, contact us through the application.
-            """)
-            
-            if st.button("← Back to Sign Up", use_container_width=True):
-                st.query_params.clear()
-                st.rerun()
-        st.stop()
-    
-    elif page_param == "privacy":
-        st.markdown("""
-        <style>
-        .stApp{background:#020617!important}
-        [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
-        .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-        </style>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 3, 1])
-        with col2:
-            st.markdown("### 🔒 Privacy Policy")
-            st.markdown("**Last Updated:** April 16, 2026")
-            st.markdown("---")
-            
-            st.markdown("""
-            #### 1. Information We Collect
-            - **Account Information:** Email address, username, password (encrypted)
-            - **Usage Data:** Documents uploaded (processed temporarily), generation history
-            - **Technical Data:** IP address, browser type, device information
-            
-            #### 2. How We Use Your Information
-            - To provide and maintain the service
-            - To send verification emails and notifications
-            - To improve user experience and service quality
-            - To ensure security and prevent fraud
-            
-            #### 3. Data Storage and Security
-            - Documents are processed temporarily and not permanently stored
-            - User accounts are stored in secure databases
-            - Passwords are encrypted using industry-standard methods
-            - We use HTTPS encryption for all data transmission
-            
-            #### 4. Data Sharing
-            - We do NOT sell your personal information
-            - We do NOT share your data with third parties for marketing
-            - We may share data only when required by law
-            
-            #### 5. Your Rights
-            - **Access:** You can access your account data at any time
-            - **Delete:** You can delete your account and associated data
-            - **Export:** You can export your generated reviews
-            - **Correct:** You can update your account information
-            
-            #### 6. Cookies and Tracking
-            - We use essential cookies for authentication
-            - We do not use third-party tracking cookies
-            - You can disable cookies in your browser settings
-            
-            #### 7. Data Retention
-            - Account data is retained while your account is active
-            - Uploaded documents are processed temporarily and deleted after generation
-            - You can request data deletion at any time
-            
-            #### 8. Children's Privacy
-            ScholarAI is not intended for users under 13 years of age.
-            
-            #### 9. Changes to Privacy Policy
-            We may update this policy and will notify users of significant changes.
-            
-            #### 10. Contact Us
-            For privacy concerns or data requests, contact us through the application.
-            """)
-            
-            if st.button("← Back to Sign Up", use_container_width=True):
-                st.query_params.clear()
-                st.rerun()
+        .stMainHeader,footer,#MainMenu{display:none!important}
+        .main .block-container{max-width:720px!important;margin:0 auto!important;padding:3rem 1.5rem!important}
+        p,li,h1,h2,h3,h4{color:#E2E8F0!important}
+        </style>""", unsafe_allow_html=True)
+        if _page == "terms":
+            st.markdown("""## Terms of Use
+**Last Updated:** April 16, 2026
+
+By accessing ScholarAI you agree to use it ethically for academic research,
+provide accurate information, and review all AI-generated content before
+submission. You retain rights to uploaded content. The service is provided
+"as is" without warranties.""")
+        else:
+            st.markdown("""## Privacy Policy
+**Last Updated:** April 16, 2026
+
+We collect your email address for authentication only. Documents are
+processed temporarily and never stored permanently. We do not sell or share
+your data. Authentication is OTP-based — no passwords stored.""")
+        if st.button("Back", use_container_width=True):
+            st.query_params.clear()
+            st.rerun()
         st.stop()
 
-    # ── Query param bridges ────────────────────────────────────────
     if st.query_params.get("auth_back") == "1":
         st.query_params.clear()
         st.session_state.show_home = True
         st.rerun()
 
+    #  Hide Streamlit chrome, set dark background 
     st.markdown("""<style>
-    .stApp{background:#020617!important}
+    .stApp{background:#0B0F1A!important}
     [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
     .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-    .main .block-container{padding-top:0.5rem!important}
-    /* Hide bridge text inputs instantly */
-    [data-testid="stTextInput"]:has(input[aria-label="OTP_BRIDGE"]),
-    [data-testid="stTextInput"]:has(input[aria-label="SU_USERNAME"]),
-    [data-testid="stTextInput"]:has(input[aria-label="SU_EMAIL"]),
-    [data-testid="stTextInput"]:has(input[aria-label="SU_PASSWORD"]),
-    [data-testid="stTextInput"]:has(input[aria-label="OTP_VALUE_BRIDGE"]),
-    [data-testid="stTextInput"]:has(input[aria-label="PR_OTP"]),
-    [data-testid="stTextInput"]:has(input[aria-label="PR_NP"]),
-    [data-testid="stTextInput"]:has(input[aria-label="PR_CP"]),
-    [data-testid="stTextInput"]:has(input[aria-label="PR_EMAIL"]) {
-        position:fixed!important;left:-9999px!important;top:-9999px!important;
-        width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;
+    .main .block-container{padding:0!important;max-width:100%!important;margin:0!important}
+    div[data-testid="stTextInput"] input{
+        background:rgba(255,255,255,.06)!important;
+        border:1.5px solid rgba(255,255,255,.12)!important;
+        border-radius:10px!important;color:#F1F5F9!important;
+        font-size:.95rem!important;padding:13px 16px!important;
+        caret-color:#818cf8!important;
     }
+    div[data-testid="stTextInput"] input:focus{
+        border-color:#4361EE!important;
+        box-shadow:0 0 0 3px rgba(67,97,238,.22)!important;
+        background:rgba(67,97,238,.08)!important;
+    }
+    div[data-testid="stTextInput"] input::placeholder{color:rgba(148,163,184,.5)!important}
+    div[data-testid="stTextInput"] label{
+        color:#94A3B8!important;font-size:.78rem!important;
+        font-weight:700!important;letter-spacing:.06em!important;text-transform:uppercase!important;
+    }
+    div.stButton>button[kind="primary"]{
+        background:linear-gradient(135deg,#4361EE,#7209B7)!important;
+        border:none!important;border-radius:10px!important;color:#fff!important;
+        font-weight:700!important;font-size:.95rem!important;padding:13px 0!important;
+        box-shadow:0 4px 20px rgba(67,97,238,.4)!important;
+        transition:transform .15s,box-shadow .15s!important;
+    }
+    div.stButton>button[kind="primary"]:hover{
+        transform:translateY(-1px)!important;
+        box-shadow:0 8px 28px rgba(67,97,238,.55)!important;
+    }
+    div.stButton>button{
+        background:rgba(255,255,255,.05)!important;
+        border:1.5px solid rgba(255,255,255,.1)!important;
+        border-radius:10px!important;color:#94A3B8!important;
+        font-weight:500!important;padding:10px 0!important;
+        transition:background .2s,border-color .2s,color .2s!important;
+    }
+    div.stButton>button:hover{
+        background:rgba(255,255,255,.09)!important;
+        border-color:rgba(255,255,255,.22)!important;color:#E2E8F0!important;
+    }
+    p,label,.stMarkdown{color:#E2E8F0!important}
+    div[data-testid="stAlert"]{
+        background:rgba(239,68,68,.12)!important;
+        border:1px solid rgba(239,68,68,.3)!important;
+        border-radius:10px!important;
+    }
+    /* Modal overlay */
+    .sai-modal-overlay{
+        display:none;position:fixed;inset:0;z-index:9999;
+        background:rgba(0,0,0,.75);backdrop-filter:blur(6px);
+        align-items:center;justify-content:center;padding:20px;
+        animation:fadeIn .2s ease;
+    }
+    .sai-modal-overlay.open{display:flex}
+    .sai-modal{
+        background:#0F172A;border:1px solid rgba(255,255,255,.1);
+        border-radius:20px;width:100%;max-width:640px;max-height:80vh;
+        overflow:hidden;display:flex;flex-direction:column;
+        box-shadow:0 32px 64px rgba(0,0,0,.6);
+        animation:slideUp .25s cubic-bezier(.16,1,.3,1);
+    }
+    .sai-modal-header{
+        display:flex;align-items:center;justify-content:space-between;
+        padding:20px 24px;border-bottom:1px solid rgba(255,255,255,.08);
+        flex-shrink:0;
+    }
+    .sai-modal-title{color:#F1F5F9;font-size:1.1rem;font-weight:700;margin:0}
+    .sai-modal-close{
+        width:32px;height:32px;border-radius:8px;border:none;cursor:pointer;
+        background:rgba(255,255,255,.06);color:#94A3B8;font-size:1.1rem;
+        display:flex;align-items:center;justify-content:center;
+        transition:background .2s,color .2s;
+    }
+    .sai-modal-close:hover{background:rgba(255,255,255,.12);color:#F1F5F9}
+    .sai-modal-body{
+        padding:24px;overflow-y:auto;flex:1;
+        scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent;
+    }
+    .sai-modal-body h3{color:#818cf8;font-size:.85rem;font-weight:700;
+        letter-spacing:.06em;text-transform:uppercase;margin:20px 0 8px}
+    .sai-modal-body h3:first-child{margin-top:0}
+    .sai-modal-body p{color:#94A3B8;font-size:.88rem;line-height:1.7;margin:0 0 12px}
+    .sai-modal-body ul{color:#94A3B8;font-size:.88rem;line-height:1.7;
+        margin:0 0 12px;padding-left:18px}
+    .sai-modal-body li{margin-bottom:4px}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
     </style>""", unsafe_allow_html=True)
-    col_c = st.columns([1, 2, 1])[1]
-    with col_c:
-        # ── Global bridge-element hider (runs on every auth mode) ─
-        # Hides ALL Streamlit text inputs & buttons in the auth column
-        # so only the components.html custom UI is visible.
-        components.html("""
-<script>
-(function hideBridge(){
-  var BRIDGE_INPUTS = ['SU_USERNAME','SU_EMAIL','SU_PASSWORD',
-                       'OTP_VALUE_BRIDGE','PR_OTP','PR_NP','PR_CP','PR_EMAIL',
-                       'OTP_BRIDGE'];
-  var BRIDGE_BTNS   = ['SU_SUBMIT','SU_LOGIN',
-                       'PR_SEND','PR_VERIFY','PR_UPDATE','PR_RESEND','PR_LOGIN',
-                       'DO_VERIFY','DO_BACK','DO_RESEND'];
-  var hide = 'position:fixed!important;left:-9999px!important;top:-9999px!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;margin:0!important;padding:0!important;pointer-events:none!important';
-  function run(){
-    var p = window.parent.document;
-    var done = true;
-    p.querySelectorAll('[data-testid="stTextInput"]').forEach(function(w){
-      var lbl = w.querySelector('label');
-      var txt = lbl ? lbl.textContent.trim() : '';
-      if(BRIDGE_INPUTS.indexOf(txt) !== -1){ w.style.cssText = hide; }
-    });
-    p.querySelectorAll('[data-testid="stButton"]').forEach(function(w){
-      var btn = w.querySelector('button p');
-      var txt = btn ? btn.textContent.trim() : '';
-      if(BRIDGE_BTNS.indexOf(txt) !== -1){ w.style.cssText = hide; }
-    });
-    // Keep running to catch any re-renders
-    setTimeout(run, 100);
-  }
-  run();
-})();
-</script>
-""", height=0)
-        # ── Auth top-bar: back arrow + theme toggle ────────────────
-        st.markdown("""
-        <style>
-        @import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@400;500;600;700&display=swap');
-        .auth-topbar{
-          position:fixed;top:0;left:0;right:0;z-index:9999;
-          display:flex;align-items:center;justify-content:space-between;
-          padding:12px 28px;
-          background:rgba(11,15,25,0.82);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
-          border-bottom:1px solid rgba(255,255,255,0.07);
-          font-family:'Inter',sans-serif;
-        }
-        .auth-topbar-logo{display:flex;align-items:center;gap:9px;text-decoration:none!important}
-        .auth-topbar-icon{
-          width:32px;height:32px;border-radius:8px;
-          background:linear-gradient(135deg,#4361EE,#7209B7);
-          display:flex;align-items:center;justify-content:center;
-          box-shadow:0 0 16px rgba(67,97,238,0.45);flex-shrink:0;
-        }
-        .auth-topbar-name{font-family:'Syne',sans-serif;font-size:1rem;font-weight:800;color:#F1F5F9}
-        .auth-topbar-right{display:flex;align-items:center;gap:8px}
-        .auth-back-btn{
-          display:inline-flex;align-items:center;gap:6px;
-          padding:7px 14px;border-radius:8px;
-          border:1px solid rgba(255,255,255,0.1);
-          background:rgba(255,255,255,0.05);
-          color:#94A3B8;font-size:0.82rem;font-weight:600;
-          text-decoration:none!important;cursor:pointer;transition:.2s;
-        }
-        .auth-back-btn:hover{color:#F1F5F9;background:rgba(255,255,255,0.09);border-color:rgba(255,255,255,0.2)}
-        .auth-theme-btn{
-          width:36px;height:36px;border-radius:8px;
-          border:1px solid rgba(255,255,255,0.1);
-          background:rgba(255,255,255,0.05);
-          display:flex;align-items:center;justify-content:center;
-          cursor:pointer;transition:.2s;flex-shrink:0;
-        }
-        .auth-theme-btn:hover{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.22)}
-        /* light mode */
-        body.sai-light .stApp{background:#F0F4FF!important}
-        body.sai-light .auth-topbar{background:rgba(240,244,255,0.9);border-bottom-color:rgba(0,0,0,0.08)}
-        body.sai-light .auth-topbar-name{color:#0F172A}
-        body.sai-light .auth-back-btn{color:#475569;border-color:rgba(0,0,0,0.1);background:rgba(0,0,0,0.04)}
-        body.sai-light .auth-back-btn:hover{color:#0F172A;background:rgba(0,0,0,0.07)}
-        body.sai-light .auth-theme-btn{border-color:rgba(0,0,0,0.1);background:rgba(0,0,0,0.04)}
-        body.sai-light .admin-login-card{background:rgba(255,255,255,0.8)!important;border-color:rgba(0,0,0,0.08)!important}
-        body.sai-light .auth-form-title{color:#0F172A!important}
-        body.sai-light .auth-form-subtitle{color:#64748B!important}
-        body.sai-light div[data-testid="stTextInput"] input,
-        body.sai-light div[data-testid="stTextArea"] textarea{
-          background:#fff!important;border-color:#CBD5E1!important;color:#0F172A!important;
-        }
-        body.sai-light label{color:#374151!important}
-        body.sai-light div.stButton>button{
-          background:rgba(0,0,0,0.05)!important;border-color:rgba(0,0,0,0.1)!important;color:#374151!important;
-        }
-        body.sai-light div.stButton>button[kind="primary"]{
-          background:linear-gradient(135deg,#4361EE,#7209B7)!important;color:#fff!important;
-        }
-        </style>
 
-        <div class="auth-topbar" id="auth-topbar">
-          <a class="auth-topbar-logo" href="?auth_back=1">
-            <div class="auth-topbar-icon">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/></svg>
-            </div>
-            <span class="auth-topbar-name">ScholarAI</span>
-          </a>
-          <div class="auth-topbar-right">
-            <a class="auth-back-btn" href="?auth_back=1">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              Back to Home
-            </a>
-            <div class="auth-theme-btn" id="sai-theme-btn" title="Toggle light / dark">
-              <svg id="sai-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-              <svg id="sai-sun"  width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </div>
-          </div>
+    #  Terms modal 
+    st.markdown("""
+    <div class="sai-modal-overlay" id="modal-terms">
+      <div class="sai-modal">
+        <div class="sai-modal-header">
+          <p class="sai-modal-title">Terms of Use</p>
+          <button class="sai-modal-close" onclick="document.getElementById('modal-terms').classList.remove('open')">&#x2715;</button>
         </div>
-        """, unsafe_allow_html=True)
+        <div class="sai-modal-body">
+          <p><strong style="color:#E2E8F0">Last Updated: April 16, 2026</strong></p>
+          <h3>1. Acceptance</h3>
+          <p>By accessing ScholarAI you agree to these Terms. If you disagree, do not use the service.</p>
+          <h3>2. Use of Service</h3>
+          <ul>
+            <li>ScholarAI is for academic research and literature review purposes only.</li>
+            <li>You must review and verify all AI-generated content before academic submission.</li>
+            <li>You may not use the service for any illegal or unauthorized purpose.</li>
+            <li>You are responsible for maintaining the security of your account.</li>
+          </ul>
+          <h3>3. Intellectual Property</h3>
+          <p>You retain all rights to content you upload. ScholarAI retains rights to the platform and its technology. Generated content is provided for your personal academic use.</p>
+          <h3>4. Disclaimer</h3>
+          <p>AI-generated content may contain errors. ScholarAI is not responsible for academic consequences arising from use of generated content. The service is provided "as is" without warranties of any kind.</p>
+          <h3>5. Limitation of Liability</h3>
+          <p>ScholarAI shall not be liable for any indirect, incidental, special, or consequential damages arising from your use of the service.</p>
+          <h3>6. Changes</h3>
+          <p>We reserve the right to modify these terms at any time. Continued use of the service constitutes acceptance of updated terms.</p>
+          <h3>7. Contact</h3>
+          <p>For questions about these terms, contact us through the application.</p>
+        </div>
+      </div>
+    </div>
 
-        # Theme toggle JS — must use components.html so script actually runs
-        components.html("""
-<script>
-(function(){
-  var body  = window.parent.document.body;
-  var moon  = window.parent.document.getElementById('sai-moon');
-  var sun   = window.parent.document.getElementById('sai-sun');
-  var btn   = window.parent.document.getElementById('sai-theme-btn');
-  var light = localStorage.getItem('sai_theme') === 'light';
+    <div class="sai-modal-overlay" id="modal-privacy">
+      <div class="sai-modal">
+        <div class="sai-modal-header">
+          <p class="sai-modal-title">Privacy Policy</p>
+          <button class="sai-modal-close" onclick="document.getElementById('modal-privacy').classList.remove('open')">&#x2715;</button>
+        </div>
+        <div class="sai-modal-body">
+          <p><strong style="color:#E2E8F0">Last Updated: April 16, 2026</strong></p>
+          <h3>1. What We Collect</h3>
+          <ul>
+            <li><strong style="color:#E2E8F0">Email address</strong>  used only for OTP authentication.</li>
+            <li><strong style="color:#E2E8F0">Usage data</strong>  documents processed temporarily, generation history.</li>
+            <li><strong style="color:#E2E8F0">Technical data</strong>  browser type, session identifiers.</li>
+          </ul>
+          <h3>2. How We Use It</h3>
+          <ul>
+            <li>To authenticate you via one-time codes.</li>
+            <li>To provide and improve the literature review service.</li>
+            <li>To ensure security and prevent abuse.</li>
+          </ul>
+          <h3>3. Data Storage</h3>
+          <p>Uploaded documents are processed in memory and never stored permanently. Your email and session data are stored securely. Passwords are never stored  we use OTP-only authentication.</p>
+          <h3>4. Data Sharing</h3>
+          <p>We do <strong style="color:#E2E8F0">not</strong> sell your data. We do <strong style="color:#E2E8F0">not</strong> share your data with third parties for marketing. Data may be disclosed only when required by law.</p>
+          <h3>5. Your Rights</h3>
+          <ul>
+            <li>Access your account data at any time.</li>
+            <li>Request deletion of your account and all associated data.</li>
+            <li>Export your generated reviews.</li>
+          </ul>
+          <h3>6. Cookies</h3>
+          <p>We use only essential session cookies for authentication. No third-party tracking cookies are used.</p>
+          <h3>7. Contact</h3>
+          <p>For privacy concerns or data requests, contact us through the application.</p>
+        </div>
+      </div>
+    </div>
 
-  function apply(l){
-    if(l){ body.classList.add('sai-light'); if(moon)moon.style.display='none'; if(sun)sun.style.display='block'; }
-    else  { body.classList.remove('sai-light'); if(moon)moon.style.display='block'; if(sun)sun.style.display='none'; }
-  }
-  apply(light);
-
-  function ready(){
-    var b = window.parent.document.getElementById('sai-theme-btn');
-    if(!b){ setTimeout(ready, 150); return; }
-    b.addEventListener('click', function(){
-      light = !light;
-      localStorage.setItem('sai_theme', light ? 'light' : 'dark');
-      apply(light);
+    <script>
+    document.addEventListener('click', function(e) {
+        var overlay = e.target.closest('.sai-modal-overlay');
+        if (overlay && e.target === overlay) {
+            overlay.classList.remove('open');
+        }
     });
-  }
-  ready();
-})();
-</script>
-""", height=0)
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.sai-modal-overlay.open').forEach(function(m) {
+                m.classList.remove('open');
+            });
+        }
+    });
+    function openModal(id) {
+        document.getElementById(id).classList.add('open');
+    }
+    </script>
+    """, unsafe_allow_html=True)
 
-        # Branding
-        # Only show branding card for login mode — other modes have full-screen UIs
-        if st.session_state.auth_mode == "login":
+    #  Centered layout 
+    _, col, _ = st.columns([1, 2, 1])
+    with col:
+
+        #  Top bar: Back to Home 
+        if st.button(" Back to Home", key="auth_back_home_btn", use_container_width=False):
+            st.session_state.show_home = True
+            st.rerun()
+
+        #  STEP 1  Enter email 
+        if st.session_state.auth_mode in ("login", "signup", "verify", "forgot_pass"):
+
             st.markdown("""
-            <style>
-            .auth-brand-wrap{text-align:center;margin-bottom:28px;margin-top:20px}
-            .auth-brand-icon{
-              width:48px;height:48px;border-radius:12px;
-              background:linear-gradient(135deg,#4361EE,#7209B7);
-              display:flex;align-items:center;justify-content:center;
-              margin:0 auto 14px;
-              box-shadow:0 0 24px rgba(67,97,238,0.4);
-            }
-            </style>
-            <div class="admin-login-card animate-up">
-              <div class="auth-brand-wrap">
-                <div class="auth-brand-icon">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/></svg>
+            <div style="background:rgba(15,23,42,.97);border:1px solid rgba(255,255,255,.08);
+                border-radius:20px;padding:44px 40px 36px;margin-top:8px;
+                box-shadow:0 32px 64px rgba(0,0,0,.55);position:relative;overflow:hidden;">
+              <div style="position:absolute;top:0;left:15%;right:15%;height:1px;
+                background:linear-gradient(90deg,transparent,rgba(99,120,255,.6),transparent)"></div>
+              <div style="text-align:center;margin-bottom:32px">
+                <div style="width:52px;height:52px;border-radius:14px;
+                    background:linear-gradient(135deg,#4361EE,#7209B7);
+                    display:flex;align-items:center;justify-content:center;
+                    margin:0 auto 18px;box-shadow:0 0 28px rgba(67,97,238,.5)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                       stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+                    <path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/>
+                  </svg>
                 </div>
-                <div class="auth-form-title">ScholarAI</div>
-                <div class="auth-form-subtitle">AI-Powered Literature Reviews</div>
+                <h2 style="color:#F1F5F9;font-size:1.5rem;font-weight:800;margin:0 0 8px;letter-spacing:-.02em">
+                  Welcome to ScholarAI
+                </h2>
+                <p style="color:#64748B;font-size:.87rem;margin:0;line-height:1.5">
+                  Enter your email to receive a one-time sign-in code.
+                </p>
               </div>
             </div>
             """, unsafe_allow_html=True)
 
-        # ── Signup — pure native Streamlit ────────────────────────
-        if st.session_state.auth_mode == "signup":
-            st.markdown("""<style>
-            [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
-            .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-            .stApp{background:#0B0F19!important}
-            .main .block-container{
-                padding:2rem 1rem!important;
-                max-width:460px!important;
-                margin:0 auto!important;
-            }
-            div[data-testid="stTextInput"] input{
-                background:rgba(255,255,255,.05)!important;
-                border:1.5px solid rgba(255,255,255,.1)!important;
-                border-radius:10px!important;color:#F8FAFC!important;
-                font-size:.93rem!important;
-            }
-            div[data-testid="stTextInput"] input:focus{
-                border-color:#4361EE!important;
-                box-shadow:0 0 0 3px rgba(67,97,238,.15)!important;
-            }
-            div[data-testid="stTextInput"] label{color:#94A3B8!important;font-size:.8rem!important;font-weight:600!important}
-            div.stButton>button[kind="primary"]{
-                background:linear-gradient(135deg,#4361EE,#7209B7)!important;
-                border:none!important;border-radius:11px!important;
-                font-weight:800!important;font-size:.95rem!important;
-                box-shadow:0 6px 18px rgba(67,97,238,.35)!important;
-            }
-            div.stButton>button{
-                background:transparent!important;
-                border:1px solid rgba(255,255,255,.1)!important;
-                color:#94A3B8!important;border-radius:11px!important;
-            }
-            p,label,.stMarkdown{color:#F8FAFC!important}
-            h1,h2,h3{color:#F8FAFC!important}
-            </style>""", unsafe_allow_html=True)
+            _err = st.session_state.get("login_error", "")
+            if _err:
+                st.error(_err)
+                st.session_state.login_error = ""
 
-            # Header
-            st.markdown("""
-            <div style='text-align:center;margin-bottom:1.5rem;margin-top:1rem'>
-              <div style='width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,#4361EE,#7209B7);
-                          display:flex;align-items:center;justify-content:center;margin:0 auto 12px;
-                          box-shadow:0 0 22px rgba(67,97,238,.5)'>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                  <path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/>
-                </svg>
-              </div>
-              <h2 style='color:#F8FAFC;font-size:1.5rem;font-weight:800;margin-bottom:4px'>Create your Account</h2>
-              <p style='color:#64748B;font-size:.87rem'>Start generating literature reviews for free.</p>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Prevent Enter key from submitting forms
-            st.markdown("""
-            <script>
-            (function() {
-                function preventEnterSubmit() {
-                    const inputs = window.parent.document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
-                    inputs.forEach(input => {
-                        input.removeEventListener('keydown', handleEnter);
-                        input.addEventListener('keydown', handleEnter);
-                    });
-                }
-                function handleEnter(e) {
-                    if (e.key === 'Enter' || e.keyCode === 13) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return false;
-                    }
-                }
-                preventEnterSubmit();
-                setInterval(preventEnterSubmit, 500);
-            })();
-            </script>
-            """, unsafe_allow_html=True)
+            email_input = st.text_input("Email address", placeholder="you@example.com", key="auth_email_input")
 
-            _su_err = st.session_state.get("su_error", "")
-            if _su_err:
-                st.error(_su_err)
-                st.session_state.su_error = ""
-
-            col1, col2 = st.columns(2)
-            with col1:
-                su_username = st.text_input("Username", placeholder="e.g. albert_e", key="su_username_n")
-            with col2:
-                su_display  = st.text_input("Display Name (optional)", placeholder="Albert Einstein", key="su_display_n")
-
-            su_email = st.text_input("Email Address", placeholder="xyz@university.edu", key="su_email_n")
-            su_pass  = st.text_input("Password", type="password",
-                                     placeholder="Choose a secure password (6-50 chars)", key="su_pass_n")
-
-            if st.button("Get Started →", key="su_submit_n", use_container_width=True, type="primary"):
-                if not su_username.strip() or not su_email.strip() or not su_pass:
-                    st.session_state.su_error = "Please fill in all required fields."
-                elif len(su_pass) < 6:
-                    st.session_state.su_error = "Password must be at least 6 characters."
+            if st.button("Continue with Email", key="auth_continue_btn", use_container_width=True, type="primary"):
+                email = email_input.strip().lower()
+                if not email or "@" not in email or "." not in email.split("@")[-1]:
+                    st.session_state.login_error = "Please enter a valid email address."
+                elif not mailer.is_smtp_configured():
+                    st.session_state.login_error = "Email service not configured. Set SMTP_USER and SMTP_PASSWORD in .env"
                 else:
-                    v_code = mailer.generate_6_digit_code()
-                    success, msg = db.create_user(su_username.strip(), su_email.strip(), su_pass, v_code)
-                    if success:
-                        # Send verification code email synchronously
-                        with st.spinner("Sending verification code... This may take a few seconds."):
-                            try:
-                                # Check if SMTP is configured
-                                if not mailer.is_smtp_configured():
-                                    st.error("❌ SMTP is not configured on the server. Please contact the administrator.")
-                                    st.info(f"📝 Your verification code is: **{v_code}** (for testing only)")
-                                    email_sent = False
-                                else:
-                                    email_sent = mailer.send_verification_code(su_email.strip(), v_code)
-                                
-                                if email_sent:
-                                    st.success(f"✅ Verification code sent to {su_email.strip()}")
-                                    st.info("📧 Check your inbox (and spam folder)")
-                                else:
-                                    st.warning("⚠️ Email sending failed. Check the logs for details.")
-                                    st.info(f"📝 Your verification code is: **{v_code}**")
-                                    st.caption("You can use this code to verify your account, or click 'Resend Code' on the next screen.")
-                            except Exception as e:
-                                st.error(f"❌ Failed to send email: {str(e)}")
-                                st.info(f"📝 Your verification code is: **{v_code}**")
-                                st.caption("Your account was created. Use this code to verify, or try resending.")
-                        
-                        st.session_state.auth_username = su_username.strip()
-                        st.session_state.auth_email    = su_email.strip()
-                        st.session_state.auth_mode     = "verify"
+                    user = db.get_user_by_email(email)
+                    if not user:
+                        import random as _rand
+                        base = email.split("@")[0]
+                        username = base
+                        for _ in range(10):
+                            ok, _ = db.create_user(username, email, "", "")
+                            if ok:
+                                break
+                            username = base + str(_rand.randint(100, 999))
+                        db.update_user_verification(username, True)
+                    otp = mailer.generate_6_digit_code()
+                    db.update_verification_code(email, otp)
+                    with st.spinner("Sending your code..."):
+                        sent = mailer.send_verification_code(email, otp)
+                    if sent:
+                        st.session_state.auth_email = email
+                        st.session_state.auth_mode  = "verify_otp"
                         st.session_state.last_code_sent_at = time.time()
-                        
-                        # Store the code in session for emergency access
-                        st.session_state.emergency_code = v_code
-                        
-                        time.sleep(2)  # Give user time to read the message
                         st.rerun()
                     else:
-                        st.session_state.su_error = msg
+                        st.session_state.login_error = "Could not send email. Check SMTP settings in .env."
                 st.rerun()
 
-            st.markdown("<div style='text-align:center;margin:12px 0;color:#475569;font-size:.72rem'>OR</div>",
-                        unsafe_allow_html=True)
+            st.markdown("""
+            <p style="text-align:center;font-size:.75rem;color:#475569;margin-top:18px;margin-bottom:0;line-height:1.7">
+              By continuing you agree to our
+              <a href="#" onclick="openModal('modal-terms');return false;"
+                 style="color:#818cf8;text-decoration:underline;cursor:pointer">Terms of Use</a>
+              and
+              <a href="#" onclick="openModal('modal-privacy');return false;"
+                 style="color:#818cf8;text-decoration:underline;cursor:pointer">Privacy Policy</a>.
+            </p>
+            """, unsafe_allow_html=True)
 
-            c1, c2 = st.columns(2)
-            with c1:
-                if st.button("← Back to Home", key="su_home_n", use_container_width=True):
-                    st.session_state.show_home = True
-                    st.rerun()
-            with c2:
-                if st.button("Sign In", key="su_login_n", use_container_width=True):
-                    st.session_state.auth_mode = "login"
-                    st.rerun()
-
-            # Terms and Privacy links
-            col_terms1, col_terms2, col_terms3 = st.columns([1, 2, 1])
-            with col_terms2:
-                st.markdown("<p style='text-align:center;font-size:.7rem;color:#334155;margin-top:10px'>"
-                            "By signing up you agree to our "
-                            "<a href='?page=terms' style='color:#4361EE;text-decoration:underline;cursor:pointer;'>Terms of Use</a> and "
-                            "<a href='?page=privacy' style='color:#4361EE;text-decoration:underline;cursor:pointer;'>Privacy Policy</a>.</p>",
-                            unsafe_allow_html=True)
-
-
-        # ── Verification — pure native Streamlit ──────────────────
-        elif st.session_state.auth_mode == "verify":
-            st.markdown("""<style>
-            [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
-            .stMainHeader,footer,#MainMenu,[data-testid="stDecoration"]{display:none!important}
-            .stApp{background:#020617!important}
-            .main .block-container{padding:2rem 1rem!important;max-width:460px!important;margin:0 auto!important}
-            div[data-testid="stTextInput"] input{
-                background:rgba(255,255,255,.05)!important;border:1.5px solid rgba(255,255,255,.1)!important;
-                border-radius:10px!important;color:#F8FAFC!important;font-size:1.1rem!important;
-                letter-spacing:.2em!important;text-align:center!important;
-            }
-            div[data-testid="stTextInput"] input:focus{border-color:#4361EE!important;box-shadow:0 0 0 3px rgba(67,97,238,.15)!important;}
-            div[data-testid="stTextInput"] label{color:#94A3B8!important;font-size:.8rem!important;font-weight:600!important}
-            div.stButton>button[kind="primary"]{background:linear-gradient(135deg,#4361EE,#7209B7)!important;border:none!important;border-radius:11px!important;font-weight:800!important;}
-            div.stButton>button{background:transparent!important;border:1px solid rgba(255,255,255,.1)!important;color:#94A3B8!important;border-radius:11px!important;}
-            p,label,.stMarkdown{color:#F8FAFC!important}
-            </style>""", unsafe_allow_html=True)
+        #  STEP 2  Enter OTP 
+        elif st.session_state.auth_mode == "verify_otp":
 
             _em = st.session_state.get("auth_email", "")
             try:
                 _at = _em.index("@")
-                _masked = _em[:2] + "*" * (_at - 2) + _em[_at:]
+                _masked = _em[:2] + chr(8226) * max(1, _at - 2) + _em[_at:]
             except Exception:
                 _masked = _em
 
@@ -1095,25 +699,28 @@ if not st.session_state.user_authenticated:
             _rem  = max(0, int(COOLDOWN - (time.time() - _last))) if _last else 0
 
             st.markdown(f"""
-            <div style='text-align:center;margin-bottom:1.5rem;margin-top:1rem'>
-              <div style='font-size:2.5rem;margin-bottom:.5rem'>📧</div>
-              <h3 style='color:#F8FAFC;margin-bottom:.3rem'>Verify Your Email</h3>
-              <p style='color:#94A3B8;font-size:.88rem'>Enter the 6-digit code sent to
-                <strong style='color:#818cf8'>{_masked}</strong></p>
-            </div>""", unsafe_allow_html=True)
-            
-            # Prevent Enter key submission
-            st.markdown("""
-            <script>
-            (function() {
-                const inputs = window.parent.document.querySelectorAll('input');
-                inputs.forEach(input => {
-                    input.addEventListener('keydown', function(e) {
-                        if (e.key === 'Enter') { e.preventDefault(); return false; }
-                    });
-                });
-            })();
-            </script>
+            <div style="background:rgba(15,23,42,.97);border:1px solid rgba(255,255,255,.08);
+                border-radius:20px;padding:44px 40px 36px;margin-top:8px;
+                box-shadow:0 32px 64px rgba(0,0,0,.55);position:relative;overflow:hidden;">
+              <div style="position:absolute;top:0;left:15%;right:15%;height:1px;
+                background:linear-gradient(90deg,transparent,rgba(99,120,255,.6),transparent)"></div>
+              <div style="text-align:center;margin-bottom:28px">
+                <div style="width:56px;height:56px;border-radius:50%;
+                    background:rgba(67,97,238,.15);border:1.5px solid rgba(67,97,238,.35);
+                    display:flex;align-items:center;justify-content:center;
+                    margin:0 auto 18px;box-shadow:0 0 24px rgba(67,97,238,.2)">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
+                       stroke="#818cf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                  </svg>
+                </div>
+                <h2 style="color:#F1F5F9;font-size:1.4rem;font-weight:800;margin:0 0 8px">Check your inbox</h2>
+                <p style="color:#64748B;font-size:.87rem;margin:0 0 6px">We sent a 6-digit code to</p>
+                <p style="color:#818cf8;font-weight:600;font-size:.93rem;margin:0 0 4px">{_masked}</p>
+                <p style="color:#475569;font-size:.75rem;margin:0">Expires in 10 min &middot; check spam if not received</p>
+              </div>
+            </div>
             """, unsafe_allow_html=True)
 
             _v_err = st.session_state.get("v_error", "")
@@ -1121,312 +728,77 @@ if not st.session_state.user_authenticated:
                 st.error(_v_err)
                 st.session_state.v_error = ""
 
-            v_code_in = st.text_input("6-Digit Code", placeholder="e.g. 123456",
-                                      max_chars=6, key="v_code_direct")
+            otp_in = st.text_input("6-digit code", placeholder="Enter your code", max_chars=6, key="verify_otp_input")
 
-            if st.button("Verify Account →", key="v_verify_n", use_container_width=True, type="primary"):
+            if st.button("Verify & Sign In", key="verify_otp_btn", use_container_width=True, type="primary"):
                 user = db.get_user_by_email(_em)
                 if user:
-                    stored_code = user.get("verification_code", "").strip()
-                    entered_code = v_code_in.strip()
-                    
-                    if stored_code and stored_code == entered_code:
-                        db.update_user_verification(st.session_state.auth_username, True)
-                        st.session_state.auth_mode = "login"
-                        st.session_state.v_error = ""
-                        st.success("✅ Account verified! You can now sign in.")
-                        time.sleep(1)
-                        st.rerun()
+                    stored    = (user.get("verification_code") or "").strip()
+                    entered   = otp_in.strip()
+                    issued_at = float(user.get("verification_code_sent_at") or 0)
+                    if not stored:
+                        st.session_state.v_error = "No active code. Please request a new one."
+                    elif mailer.is_otp_expired(issued_at):
+                        st.session_state.v_error = "Code expired. Please request a new one."
+                    elif stored != entered:
+                        st.session_state.v_error = "Incorrect code. Please try again."
                     else:
-                        st.session_state.v_error = "Invalid code. Please check your email and try again."
+                        db.update_verification_code(_em, "")
+                        db.update_user_verification(user["username"], True)
+                        st.session_state.user_authenticated = True
+                        st.session_state.username      = user["username"]
+                        st.session_state.auth_username = user["username"]
+                        st.session_state.auth_email    = _em
+                        st.session_state.user_tier     = user.get("tier", "free")
+                        st.session_state.auth_mode     = "login"
                         st.rerun()
                 else:
-                    st.session_state.v_error = "User not found. Please try signing up again."
-                    st.rerun()
-
-            if _rem > 0:
-                st.caption(f"⏱ Resend available in {_rem // 60:02d}:{_rem % 60:02d}")
-            else:
-                if st.button("📧 Resend Code", key="v_resend_n", use_container_width=True):
-                    v_code = mailer.generate_6_digit_code()
-                    db.update_verification_code(_em, v_code)
-                    # Send synchronously for Streamlit Cloud
-                    with st.spinner("Resending code..."):
-                        try:
-                            mailer.send_verification_code(_em, v_code)
-                            st.session_state.last_code_sent_at = time.time()
-                            st.toast("✅ Verification code resent!")
-                        except Exception as e:
-                            st.error(f"Failed to send email: {str(e)}")
-                    st.rerun()
-
-            if st.button("← Back to Signup", key="v_back_n", use_container_width=True):
-                st.session_state.auth_mode = "signup"
+                    st.session_state.v_error = "Account not found. Go back and try again."
                 st.rerun()
 
-        # ── Forgot Password — pure native Streamlit, no bridges ──
-        elif st.session_state.auth_mode == "forgot_pass":
-            if "reset_step" not in st.session_state or st.session_state.reset_step not in ("otp", "password", "success"):
-                st.session_state.reset_step = "email"
-
-            # Dark theme styling
-            st.markdown("""<style>
-            [data-testid="stSidebar"],[data-testid="stHeader"],[data-testid="stToolbar"],
-            .stMainHeader,footer,#MainMenu{display:none!important}
-            .stApp{background:#020617!important}
-            .main .block-container{padding:2rem 1rem!important;max-width:480px!important;margin:0 auto!important}
-            div[data-testid="stTextInput"] input{
-              background:rgba(255,255,255,.05)!important;border:1.5px solid rgba(255,255,255,.1)!important;
-              border-radius:10px!important;color:#F8FAFC!important;font-size:.95rem!important;
-            }
-            div[data-testid="stTextInput"] input:focus{border-color:#4361EE!important;box-shadow:0 0 0 3px rgba(67,97,238,.15)!important;}
-            div[data-testid="stTextInput"] label{color:#94A3B8!important;font-size:.8rem!important;font-weight:600!important}
-            div.stButton>button[kind="primary"]{background:linear-gradient(135deg,#4361EE,#7209B7)!important;border:none!important;border-radius:11px!important;font-weight:800!important;}
-            div.stButton>button{background:transparent!important;border:1px solid rgba(255,255,255,.1)!important;color:#94A3B8!important;border-radius:11px!important;}
-            p,label,.stMarkdown{color:#F8FAFC!important}
-            </style>""", unsafe_allow_html=True)
-
-            _step = st.session_state.get("reset_step", "email")
-            _err  = st.session_state.get("pr_error", "")
-
-            # ── Step indicator ─────────────────────────────────────
-            s1_cls = "color:#818cf8;font-weight:800" if _step == "otp"      else ("color:#10B981" if _step in ("password","success") else "color:#475569")
-            s2_cls = "color:#818cf8;font-weight:800" if _step == "password"  else ("color:#10B981" if _step == "success"              else "color:#475569")
-            s3_cls = "color:#818cf8;font-weight:800" if _step == "success"   else "color:#475569"
-            s1 = f"<span style='{s1_cls}'>① Verify</span>"
-            s2 = f"<span style='{s2_cls}'>② Update</span>"
-            s3 = f"<span style='{s3_cls}'>③ Done</span>"
-            st.markdown(f"<div style='text-align:center;font-size:.85rem;margin-bottom:1rem'>{s1} &nbsp;→&nbsp; {s2} &nbsp;→&nbsp; {s3}</div>", unsafe_allow_html=True)
-
-            if _err:
-                st.error(_err)
-                st.session_state.pr_error = ""
-
-            # ── EMAIL STEP ─────────────────────────────────────────
-            if _step == "email":
-                st.markdown("<h3 style='color:#F8FAFC;text-align:center'>Reset Password</h3>", unsafe_allow_html=True)
-                fe = st.text_input("Email Address", placeholder="e.g. user@university.edu", key="pr_email_direct")
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("← Back", key="pr_back_e", use_container_width=True):
-                        st.session_state.auth_mode = "login"
-                        st.rerun()
-                with c2:
-                    if st.button("Send Code →", key="pr_send_e", use_container_width=True, type="primary"):
-                        fe = fe.strip()
-                        if not fe or "@" not in fe:
-                            st.session_state.pr_error = "Enter a valid email address."
-                        else:
-                            user = db.get_user_by_email(fe)
-                            if user:
-                                r_code = mailer.generate_6_digit_code()
-                                db.update_reset_token(fe, r_code)
-                                # Send synchronously for Streamlit Cloud
-                                mailer.send_password_reset(fe, r_code)
-                                st.session_state.auth_email = fe
-                                st.session_state.reset_step = "otp"
-                                st.session_state.last_code_sent_at = time.time()
-                            else:
-                                st.session_state.pr_error = "No account found with that email."
-                        st.rerun()
-
-            # ── OTP STEP — Native Streamlit (fast & reliable) ─────
-            elif _step == "otp":
-                COOLDOWN = 120
-                _last = st.session_state.get("last_code_sent_at", 0)
-                _rem  = max(0, int(COOLDOWN - (time.time() - _last))) if _last else 0
-                em = st.session_state.get("auth_email", "")
-                _otp_err = st.session_state.get("pr_error", "")
-
-                # Mask email for display
-                try:
-                    _at = em.index("@")
-                    _masked = em[:2] + "*" * (_at - 2) + em[_at:]
-                except Exception:
-                    _masked = em
-
-                st.markdown(f"""
-                <div style='text-align:center;margin-bottom:1rem'>
-                  <div style='font-size:2.5rem;margin-bottom:.5rem'>🔐</div>
-                  <h3 style='color:#F8FAFC;margin-bottom:.3rem'>Verify Code</h3>
-                  <p style='color:#94A3B8;font-size:.88rem'>Code sent to <strong style='color:#818cf8'>{_masked}</strong></p>
-                </div>""", unsafe_allow_html=True)
-
-                if _otp_err:
-                    st.error(f"⚠ {_otp_err}")
-                    st.session_state.pr_error = ""
-
-                otp_in = st.text_input("Enter 6-digit code", placeholder="e.g. 123456",
-                                       max_chars=6, key="pr_otp_direct",
-                                       label_visibility="visible")
-
-                c1, c2 = st.columns(2)
-                with c1:
-                    if st.button("← Back", key="pr_back_otp", use_container_width=True):
-                        st.session_state.reset_step = "email"
-                        st.rerun()
-                with c2:
-                    if st.button("Verify Code →", key="pr_verify_otp",
-                                 use_container_width=True, type="primary"):
-                        code = otp_in.strip()
-                        user = db.get_user_by_email(em)
-                        stored = user.get("reset_token", "") if user else ""
-                        if user and stored and code == stored:
-                            st.session_state.reset_step = "password"
-                            st.session_state.pr_error = ""
-                        else:
-                            st.session_state.pr_error = "Invalid code. Please try again."
-                        st.rerun()
-
-                if _rem > 0:
-                    st.caption(f"⏱ Resend available in {_rem // 60:02d}:{_rem % 60:02d}")
-                else:
-                    if st.button("📧 Resend Code", key="pr_resend_otp", use_container_width=True):
-                        r_code = mailer.generate_6_digit_code()
-                        db.update_reset_token(em, r_code)
-                        # Send synchronously for Streamlit Cloud
-                        mailer.send_password_reset(em, r_code)
+            if _rem > 0:
+                components.html(f"""
+                <div id="tw" style="text-align:center;margin-top:14px">
+                  <p style="color:#475569;font-size:.82rem;margin:0;font-family:sans-serif">
+                    Resend available in
+                    <span id="tv" style="color:#818cf8;font-weight:700">{_rem//60:02d}:{_rem%60:02d}</span>
+                  </p>
+                </div>
+                <script>
+                (function(){{
+                  var r={_rem},el=document.getElementById('tv'),w=document.getElementById('tw');
+                  function fmt(s){{return String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}}
+                  function tick(){{
+                    if(r<=0){{w.innerHTML='<p style="color:#818cf8;font-size:.82rem;font-family:sans-serif;text-align:center;cursor:pointer" onclick="window.parent.location.reload()">Click to resend code</p>';return;}}
+                    if(el)el.textContent=fmt(r);r--;setTimeout(tick,1000);
+                  }}
+                  tick();
+                }})();
+                </script>
+                """, height=40)
+            else:
+                if st.button("Resend code", key="resend_otp_btn", use_container_width=True):
+                    new_otp = mailer.generate_6_digit_code()
+                    db.update_verification_code(_em, new_otp)
+                    with st.spinner("Resending..."):
+                        sent = mailer.send_verification_code(_em, new_otp)
+                    if sent:
                         st.session_state.last_code_sent_at = time.time()
-                        st.toast("✅ New code sent!")
-                        st.rerun()
-
-
-            elif _step == "password":
-                st.markdown("<h3 style='color:#F8FAFC;text-align:center'>New Password</h3>", unsafe_allow_html=True)
-                np_val = st.text_input("New Password", type="password", placeholder="Min. 8 characters", key="pr_np_direct")
-                cp_val = st.text_input("Confirm Password", type="password", placeholder="Repeat your password", key="pr_cp_direct")
-                if st.button("Update Password →", key="pr_update_p", use_container_width=True, type="primary"):
-                    if len(np_val) < 8:
-                        st.session_state.pr_error = "Password must be at least 8 characters."
-                    elif np_val != cp_val:
-                        st.session_state.pr_error = "Passwords do not match."
+                        st.toast("New code sent!")
                     else:
-                        db.update_password(st.session_state.auth_email, np_val)
-                        st.session_state.reset_step = "success"
+                        st.error("Failed to send email. Check SMTP settings.")
                     st.rerun()
 
-            # ── SUCCESS STEP ───────────────────────────────────────
-            elif _step == "success":
-                st.markdown("""
-                <div style='text-align:center;padding:2rem 0'>
-                  <div style='font-size:3rem;margin-bottom:1rem'>✅</div>
-                  <h3 style='color:#10B981'>Password Updated!</h3>
-                  <p style='color:#94A3B8'>Your password has been changed successfully.</p>
-                </div>""", unsafe_allow_html=True)
-                if st.button("Go to Sign In →", key="pr_signin_s", use_container_width=True, type="primary"):
-                    st.session_state.auth_mode = "login"
-                    st.session_state.reset_step = "email"
-                    st.rerun()
-
-        # ── Login (Default) ────────────────────────────────────────
-        else:
-            # Prevent Enter key from submitting forms
-            st.markdown("""
-            <script>
-            // Prevent Enter key submission on all input fields
-            document.addEventListener('DOMContentLoaded', function() {
-                function preventEnterSubmit() {
-                    const inputs = parent.document.querySelectorAll('input[type="text"], input[type="email"], input[type="password"]');
-                    inputs.forEach(input => {
-                        input.addEventListener('keydown', function(e) {
-                            if (e.key === 'Enter' || e.keyCode === 13) {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                return false;
-                            }
-                        });
-                    });
-                }
-                preventEnterSubmit();
-                // Re-apply after Streamlit reruns
-                setInterval(preventEnterSubmit, 500);
-            });
-            </script>
-            """, unsafe_allow_html=True)
-            
-            st.markdown('<div class="auth-form-title" style="font-size:1.3rem;">Welcome Back</div>', unsafe_allow_html=True)
-            l_user = st.text_input("Username or Email", placeholder="e.g. scholar_user", key="login_user")
-            l_pass = st.text_input("Password", type="password", placeholder="••••••••", key="login_pass")
-            remember_me = st.checkbox("Remember Me", value=True)
-
-            # Auto-login once both fields are filled (no Enter key needed).
-            creds_ready = bool(l_user.strip()) and bool(l_pass)
-            creds_signature = f"{l_user.strip()}::{l_pass}"
-            auto_attempt = False
-            if creds_ready:
-                last_sig = st.session_state.get("last_login_attempt_sig")
-                if last_sig != creds_signature:
-                    auto_attempt = True
-                    st.session_state.last_login_attempt_sig = creds_signature
-
-            manual_click = st.button("🚀 Sign In", type="primary", use_container_width=True)
-
-            if manual_click or auto_attempt:
-                user = db.verify_user(l_user, l_pass)
-                if user:
-                    if user["is_verified"]:
-                        st.session_state.user_authenticated = True
-                        st.session_state.username = user["username"]
-                        st.session_state.auth_username = user["username"]
-                        st.session_state.auth_email = user["email"]
-                        st.session_state.user_tier = user.get("tier", "free")
-                        
-                        if remember_me:
-                            # Generate a unique token
-                            token = secrets.token_hex(32)
-                            db.update_remember_token(user["username"], token)
-                            render_remember_me_js("save", token)
-                            # Reliable persistence path: keep token in URL params.
-                            st.query_params["remember_token"] = token
-                        else:
-                            db.update_remember_token(user["username"], None)
-                            st.query_params.clear()
-                            
-                        st.rerun()
-                    else:
-                        st.session_state.auth_email = user["email"]
-                        st.session_state.auth_username = user["username"]
-                        st.session_state.auth_mode = "verify"
-                        # Auto-resend verification code so user gets it immediately
-                        v_code = mailer.generate_6_digit_code()
-                        db.update_verification_code(user["email"], v_code)
-                        # Send synchronously for Streamlit Cloud
-                        mailer.send_verification_code(user["email"], v_code)
-                        st.session_state.last_code_sent_at = time.time()
-                        st.rerun()
-                else:
-                    # Check if user exists but password is wrong
-                    user_by_email = db.get_user_by_email(l_user)
-                    if user_by_email:
-                        # User exists, check if they're verified
-                        if not user_by_email.get("is_verified", False):
-                            st.warning("⚠️ Your account is not verified yet. Please check your email for the verification code.")
-                            if st.button("Resend Verification Code", key="resend_from_login"):
-                                v_code = mailer.generate_6_digit_code()
-                                db.update_verification_code(user_by_email["email"], v_code)
-                                mailer.send_verification_code(user_by_email["email"], v_code)
-                                st.session_state.auth_email = user_by_email["email"]
-                                st.session_state.auth_username = user_by_email["username"]
-                                st.session_state.auth_mode = "verify"
-                                st.success("✅ Verification code sent! Redirecting...")
-                                time.sleep(1)
-                                st.rerun()
-                        else:
-                            st.error("❌ Invalid password. Please try again or reset your password.")
-                    else:
-                        st.error("❌ Account not found. Please check your email or create an account.")
-
-            col_l, col_r = st.columns(2)
-            with col_l:
-                if st.button("Create Account", use_container_width=True, key="go_signup"):
-                    st.session_state.auth_mode = "signup"
-                    st.rerun()
-            with col_r:
-                if st.button("Forgot Password?", use_container_width=True, key="go_forgot"):
-                    st.session_state.auth_mode = "forgot_pass"
-                    st.rerun()
+            st.markdown("<div style='margin-top:8px'></div>", unsafe_allow_html=True)
+            if st.button("Use a different email", key="back_to_email_btn", use_container_width=True):
+                st.session_state.auth_mode = "login"
+                st.session_state.v_error   = ""
+                st.rerun()
 
     st.stop()
+
+
+
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1471,6 +843,42 @@ def render_sidebar():
         st.markdown(f"Logged in as: **{st.session_state.get('username', 'User')}**")
         st.markdown("---")
 
+        # ── AI Provider & API Key ──────────────────────────────────
+        st.markdown('<div class="sidebar-section-title">🤖 AI Provider</div>',
+                    unsafe_allow_html=True)
+        provider = st.selectbox(
+            "AI Provider",
+            ["google", "openai"],
+            index=0 if st.session_state.ai_provider == "google" else 1,
+            format_func=lambda x: "Google Gemini (Free)" if x == "google" else "OpenAI GPT-4",
+            label_visibility="collapsed",
+        )
+        st.session_state.ai_provider = provider
+
+        if provider == "google":
+            gemini_key = st.text_input(
+                "Google Gemini API Key",
+                value=st.session_state.gemini_api_key,
+                type="password",
+                placeholder="AIzaSy...",
+                help="Get a free key at https://aistudio.google.com/app/apikey",
+            )
+            if gemini_key != st.session_state.gemini_api_key:
+                st.session_state.gemini_api_key = gemini_key.strip()
+            if not st.session_state.gemini_api_key:
+                st.caption("🔑 [Get free Gemini key →](https://aistudio.google.com/app/apikey)")
+        else:
+            openai_key = st.text_input(
+                "OpenAI API Key",
+                value=st.session_state.api_key,
+                type="password",
+                placeholder="sk-...",
+            )
+            if openai_key != st.session_state.api_key:
+                st.session_state.api_key = openai_key.strip()
+
+        st.markdown("---")
+
         # ── Citation Style ─────────────────────────────────────────
         st.markdown('<div class="sidebar-section-title">📚 Citation Style</div>',
                     unsafe_allow_html=True)
@@ -1495,19 +903,19 @@ def render_sidebar():
 
         # ── History ───────────────────────────────────────────────
         if st.session_state.history:
-            st.markdown('<div class="sidebar-section-title">📜 Session History</div>',
+            st.markdown('<div class="sidebar-section-title">📣 Session History</div>',
                         unsafe_allow_html=True)
             for i, h in enumerate(reversed(st.session_state.history)):
                 with st.expander(f"Review {len(st.session_state.history)-i}: {h['topic'][:30]}..."):
-                    st.caption(f"Style: {h['citation_style']} · {h['word_count']} words")
-                    if st.button("↩ Reload", key=f"reload_{i}"):
+                    st.caption(f"Style: {h['citation_style']} ┬╖ {h['word_count']} words")
+                    if st.button("🔄 Reload", key=f"reload_{i}"):
                         st.session_state.result = h
                         st.rerun()
             st.markdown("---")
 
         # ── Reset ─────────────────────────────────────────────────
         if st.button("Generate Literature Review", type="primary", use_container_width=True):
-            # 💸 MONETIZATION CHECK
+            # ≡ƒÆ╕ MONETIZATION CHECK
             if st.session_state.user_tier == "free" and st.session_state.user_credits >= 30: # relax for dev
                 st.session_state.show_paywall = True
                 st.rerun()
@@ -1535,7 +943,7 @@ def render_sidebar():
             st.rerun()
 
         st.markdown("---")
-        st.caption("ScholarAI v1.0 · Powered by GPT-4o")
+        st.caption("ScholarAI v1.0 ┬╖ Powered by GPT-4o")
         st.caption("⚠ AI draft — review before submission")
 
 
@@ -1633,11 +1041,11 @@ char_count = len(topic_input)
 col_a, col_b = st.columns([3,1])
 with col_a:
     if char_count < 20:
-        st.caption(f"💡 {char_count}/300 chars — more detail = better review (aim for 30+ chars)")
+        st.caption(f"≡ƒÆí {char_count}/300 chars — more detail = better review (aim for 30+ chars)")
     elif char_count < 100:
-        st.caption(f"✓ {char_count}/300 chars — good topic length")
+        st.caption(f"✏ {char_count}/300 chars — good topic length")
     else:
-        st.caption(f"✓ {char_count}/300 chars — detailed topic")
+        st.caption(f"✏ {char_count}/300 chars — detailed topic")
 
 
 # ══════════════════════════════════════════════════════════════════
@@ -1701,7 +1109,7 @@ if slots_left > 0:
         if new_count:
             st.rerun()
 else:
-    st.info(f"✓ Maximum {MAX_ARTICLES} articles uploaded. Remove one to add another.")
+    st.info(f"✏ Maximum {MAX_ARTICLES} articles uploaded. Remove one to add another.")
 
 # ── Display uploaded article cards ────────────────────────────────
 if st.session_state.articles:
@@ -1718,14 +1126,14 @@ if st.session_state.articles:
                   <span class="article-badge">{ext}</span>&nbsp;&nbsp;{art["filename"]}
                 </div>
                 <div class="article-card-meta">
-                  {info["pages"]} page(s) · {info["word_count"]:,} words ·
-                  {format_bytes(art["size"])} · {estimate_read_time(info["word_count"])}
+                  {info["pages"]} page(s) ┬╖ {info["word_count"]:,} words ┬╖
+                  {format_bytes(art["size"])} ┬╖ {estimate_read_time(info["word_count"])}
                 </div>
               </div>
             </div>
             """, unsafe_allow_html=True)
         with col2:
-            if st.button("✕", key=f"remove_{i}", help="Remove this article"):
+            if st.button("🗑", key=f"remove_{i}", help="Remove this article"):
                 st.session_state.articles.pop(i)
                 st.rerun()
 
@@ -1744,18 +1152,9 @@ if st.session_state.generating:
                     provider=active_provider,
                 )
             else:
-                # Initialize direct provider client (legacy local mode)
+                # Initialize direct provider client
                 if active_provider == "google":
-                    import google.generativeai as genai
-                    genai.configure(api_key=st.session_state.gemini_api_key)
-                    # Try multiple model names for better compatibility
-                    try:
-                        client = genai.GenerativeModel("gemini-1.5-flash")
-                    except Exception:
-                        try:
-                            client = genai.GenerativeModel("models/gemini-1.5-flash")
-                        except Exception:
-                            client = genai.GenerativeModel("gemini-pro")
+                    client = st.session_state.gemini_api_key  # pass key directly
                 else:
                     from openai import OpenAI
                     client = OpenAI(api_key=st.session_state.api_key)
@@ -1795,16 +1194,7 @@ if st.session_state.generating:
                         or "exceeded your current quota" in err_text
                     ):
                         st.warning("⚠ OpenAI unavailable/quota reached. Retrying automatically with Gemini...")
-                        import google.generativeai as genai
-                        genai.configure(api_key=st.session_state.gemini_api_key)
-                        # Try multiple model names
-                        try:
-                            fallback_client = genai.GenerativeModel("gemini-1.5-flash")
-                        except Exception:
-                            try:
-                                fallback_client = genai.GenerativeModel("models/gemini-1.5-flash")
-                            except Exception:
-                                fallback_client = genai.GenerativeModel("gemini-pro")
+                        fallback_client = st.session_state.gemini_api_key
                         result = generate_review(
                             fallback_client,
                             st.session_state.topic,
@@ -1857,7 +1247,7 @@ st.markdown("""
 
 # Citation style confirm badge
 st.markdown(
-    f'<div class="style-confirm">📚 Citation style: <strong>{st.session_state.citation_style}</strong>'
+    f'<div class="style-confirm">📖 Citation style: <strong>{st.session_state.citation_style}</strong>'
     f' — change in sidebar if needed.</div>',
     unsafe_allow_html=True
 )
@@ -1896,13 +1286,13 @@ with col_gen:
         type="primary",
     )
     
-    # 📚 MONETIZATION: Intercept free user first generation
+    # 📖 MONETIZATION: Intercept free user first generation
     if generate_clicked and st.session_state.user_tier == "free" and st.session_state.user_credits >= 1:
         st.session_state.show_paywall = True
         st.rerun()
 with col_regen:
     if st.session_state.result:
-        regen_clicked = st.button("↺ Regenerate", use_container_width=True,
+        regen_clicked = st.button("🔁 Regenerate", use_container_width=True,
                                    help="Re-run with same inputs")
         if regen_clicked:
             generate_clicked = True
@@ -1920,23 +1310,14 @@ if generate_clicked and ready:
     client = None
     if not st.session_state.backend_api_url:
         if st.session_state.ai_provider == "google":
-            import google.generativeai as genai
-            genai.configure(api_key=st.session_state.gemini_api_key)
-            # Try multiple model names for compatibility
-            try:
-                client = genai.GenerativeModel("gemini-1.5-flash")
-            except Exception:
-                try:
-                    client = genai.GenerativeModel("models/gemini-1.5-flash")
-                except Exception:
-                    client = genai.GenerativeModel("gemini-pro")
+            client = st.session_state.gemini_api_key  # pass key directly
         else:
             from openai import OpenAI
             client = OpenAI(api_key=st.session_state.api_key)
 
     progress_msgs = []
 
-    with st.status("🔬 Generating your literature review...", expanded=True) as status:
+    with st.status("≡ƒö¼ Generating your literature review...", expanded=True) as status:
         try:
             def update_progress(msg: str):
                 st.write(msg)
@@ -1951,7 +1332,7 @@ if generate_clicked and ready:
                         citation_style=st.session_state.citation_style,
                         provider=active_provider,
                     )
-                    update_progress("🔐 Generated via private backend API.")
+                    update_progress("≡ƒöÉ Generated via private backend API.")
                 else:
                     result = generate_review(
                         client=client,
@@ -1989,16 +1370,7 @@ if generate_clicked and ready:
                     or "exceeded your current quota" in err_text
                 ) and not st.session_state.backend_api_url:
                     update_progress("⚠ OpenAI unavailable/quota reached. Retrying with Gemini...")
-                    import google.generativeai as genai
-                    genai.configure(api_key=st.session_state.gemini_api_key)
-                    # Try multiple model names
-                    try:
-                        fallback_client = genai.GenerativeModel("gemini-1.5-flash")
-                    except Exception:
-                        try:
-                            fallback_client = genai.GenerativeModel("models/gemini-1.5-flash")
-                        except Exception:
-                            fallback_client = genai.GenerativeModel("gemini-pro")
+                    fallback_client = st.session_state.gemini_api_key
                     result = generate_review(
                         client=fallback_client,
                         topic=st.session_state.topic,
@@ -2023,7 +1395,7 @@ if generate_clicked and ready:
             result["review_id"] = review_id
             st.session_state.review_id = review_id
 
-            # 💸 MONETIZATION: Increment credits
+            # ≡ƒÆ╕ MONETIZATION: Increment credits
             if st.session_state.auth_username:
                 db.increment_user_credits(st.session_state.auth_username)
                 status = db.get_user_status(st.session_state.auth_username)
@@ -2050,9 +1422,9 @@ if generate_clicked and ready:
             status.update(label="❌ Generation failed", state="error")
             st.error(f"**Generation error:** {err_msg[:300]}")
             if "rate_limit" in err_msg.lower():
-                st.info("💡 You've hit OpenAI's rate limit. Wait 30 seconds and try again.")
+                st.info("≡ƒÆí You've hit OpenAI's rate limit. Wait 30 seconds and try again.")
             elif "api_key" in err_msg.lower() or "authentication" in err_msg.lower():
-                st.info("💡 Check your API key in the sidebar — it may be invalid or expired.")
+                st.info("≡ƒÆí Check your API key in the sidebar — it may be invalid or expired.")
     avatar_loader.empty()
 
 
@@ -2068,15 +1440,15 @@ def render_output(result: dict):
     st.markdown(f"""
     <div class="review-header-bar animate-up">
       <span class="pill pill-teal">✅ Review Ready</span>
-      <span class="pill pill-indigo">📚 {result['citation_style']}</span>
-      <span class="pill pill-indigo">📄 {arts_count} article(s)</span>
+      <span class="pill pill-indigo">📖 {result['citation_style']}</span>
+      <span class="pill pill-indigo">≡ƒôä {arts_count} article(s)</span>
       <span class="pill pill-indigo">✍️ {wc:,} words</span>
       <span class="pill pill-amber">⏱ ~{max(1, wc//200)} min read</span>
     </div>
     """, unsafe_allow_html=True)
 
     # ── Source attribution ─────────────────────────────────────────
-    with st.expander("🔗 Source Attribution — which articles contributed to each claim"):
+    with st.expander("≡ƒöù Source Attribution — which articles contributed to each claim"):
         st.markdown('<div class="attr-panel">', unsafe_allow_html=True)
         attribution = result.get("attribution", [])
         if attribution:
@@ -2144,7 +1516,7 @@ def render_output(result: dict):
         <h1 style="border:none; margin:0; padding:0; font-size:2.4rem;">Literature Review</h1>
         <div style="width:60px; height:3px; background:var(--indigo); margin:24px auto;"></div>
         <p style="font-family:'DM Sans', sans-serif; font-size:0.9rem; color:#64748B; font-style:normal;">
-          Topic: <span style="color:#0F172A; font-weight:600;">{result['topic']}</span> &nbsp;·&nbsp;
+          Topic: <span style="color:#0F172A; font-weight:600;">{result['topic']}</span> &nbsp;┬╖&nbsp;
           Style: <span style="color:#0F172A; font-weight:600;">{result['citation_style']}</span>
         </p>
       </div>
@@ -2175,7 +1547,7 @@ def render_output(result: dict):
 
     # ── Download bar ───────────────────────────────────────────────
     st.markdown('<div class="download-bar animate-up">', unsafe_allow_html=True)
-    st.markdown('<div class="download-bar-title">⬇ Download Your Review</div>',
+    st.markdown('<div class="download-bar-title">📥 Download Your Review</div>',
                 unsafe_allow_html=True)
 
     slug  = slugify(result["topic"])
@@ -2193,7 +1565,7 @@ def render_output(result: dict):
                     result["topic"], result["citation_style"]
                 )
                 if st.download_button(
-                    "📄 Download PDF",
+                    "≡ƒôä Download PDF",
                     data=pdf_bytes,
                     file_name=f"literature_review_{slug}_{style_slug}.pdf",
                     mime="application/pdf",
@@ -2213,7 +1585,7 @@ def render_output(result: dict):
                     result["topic"], result["citation_style"]
                 )
                 if st.download_button(
-                    "📝 Download DOCX",
+                    "📥 Download DOCX",
                     data=docx_bytes,
                     file_name=f"literature_review_{slug}_{style_slug}.docx",
                     mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -2228,7 +1600,7 @@ def render_output(result: dict):
     with dl_col3:
         refs_only_bytes = refs_text.encode("utf-8")
         if st.download_button(
-            "📚 References Only",
+            "📖 References Only",
             data=refs_only_bytes,
             file_name=f"references_{slug}_{style_slug}.txt",
             mime="text/plain",
@@ -2246,7 +1618,7 @@ def render_output(result: dict):
                      f"{review_text}\n\n"
                      f"REFERENCES\n{refs_text}")
         if st.download_button(
-            "📋 Copy as Text",
+            "≡ƒôï Copy as Text",
             data=full_text.encode("utf-8"),
             file_name=f"literature_review_{slug}_{style_slug}.txt",
             mime="text/plain",
@@ -2277,7 +1649,7 @@ if st.session_state.result:
 st.markdown("---")
 st.markdown(
     '<div style="text-align:center;font-size:0.75rem;color:#6B7A99;padding:8px 0;">'
-    'ScholarAI v1.0 · Powered by OpenAI GPT-4o · '
+    'ScholarAI v1.0 ┬╖ Powered by OpenAI GPT-4o ┬╖ '
     '<a href="/Admin_Dashboard" style="color:#4361EE;">Admin Dashboard</a>'
     '</div>',
     unsafe_allow_html=True

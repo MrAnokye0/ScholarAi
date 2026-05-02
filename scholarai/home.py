@@ -40,7 +40,7 @@ a[href]{target:_self !important}
     
     st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600;700&display=swap');
+/* fonts loaded via preconnect in head */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --c1:#4361EE;--c2:#7209B7;--c3:#06D6A0;--c4:#F72585;
@@ -325,18 +325,18 @@ a[href*="?go=app"]{
 <canvas id="bg-canvas"></canvas>
 
 <nav class="xnav" id="xnav">
-  <a class="xnav-logo" href="?go=app">
+  <a class="xnav-logo" href="?go=app" target="_self">
     <div class="xnav-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3.33 1.67 8.67 1.67 12 0v-5"/></svg></div>
     <span class="xnav-name">ScholarAI</span>
   </a>
   <div class="xnav-links">
-    <a href="#xfeatures">Features</a>
-    <a href="#xhow">How It Works</a>
-    <a href="#xpricing">Pricing</a>
+    <a href="#xfeatures" target="_self">Features</a>
+    <a href="#xhow" target="_self">How It Works</a>
+    <a href="#xpricing" target="_self">Pricing</a>
   </div>
   <div class="xnav-right">
-    <a class="xnav-signin" href="?go=app">Sign In</a>
-    <a class="xnav-cta" href="?go=app">Get Started</a>
+    <a class="xnav-signin" href="?go=app" target="_self">Sign In</a>
+    <a class="xnav-cta" href="?go=app" target="_self">Get Started</a>
   </div>
 </nav>
 
@@ -348,8 +348,8 @@ a[href*="?go=app"]{
   </h1>
   <p class="xhero-sub">ScholarAI synthesizes your academic sources into a fully-cited, publication-ready literature review in seconds &mdash; not weeks.</p>
   <div class="xhero-btns">
-    <a class="xbtn-p" href="?go=app">Start for Free</a>
-    <a class="xbtn-s" href="#xhow">See How It Works</a>
+    <a class="xbtn-p" href="?go=app" target="_self">Start for Free</a>
+    <a class="xbtn-s" href="#xhow" target="_self">See How It Works</a>
   </div>
   <p class="xhero-note">No credit card required &nbsp;&bull;&nbsp; Free tier available &nbsp;&bull;&nbsp; Powered by Gemini &amp; GPT-4o</p>
   <div class="xhero-card">
@@ -434,79 +434,51 @@ a[href*="?go=app"]{
 
 // ── FORCE SAME-TAB NAVIGATION (AGGRESSIVE FIX) ───────────────────
 (function(){
-  // Prevent ALL new tabs/windows from opening
-  window.open = function(url, target){
-    if(url && url.includes('?go=app')){
-      window.location.href = url;
-      return window;
-    }
-    return null;
+  // Override window.open to prevent new tabs
+  var _origOpen = window.open;
+  window.open = function(url, target, features) {
+    if (url) { window.location.href = url; }
+    return window;
   };
-  
-  function forceSameTab(){
-    // Get all links
-    const allLinks = document.querySelectorAll('a');
-    
-    allLinks.forEach(function(link){
-      const href = link.getAttribute('href');
-      
-      // Only process links with ?go=app
-      if(href && href.includes('?go=app')){
-        // Remove any target attribute
-        link.removeAttribute('target');
-        
-        // Remove any onclick that might open new tab
-        link.removeAttribute('onclick');
-        
-        // Add our own click handler with highest priority
-        link.addEventListener('click', function(e){
+
+  // Intercept ALL link clicks — force same-tab navigation
+  function interceptLinks() {
+    document.querySelectorAll('a[href]').forEach(function(a) {
+      // Set target on the element itself
+      a.setAttribute('target', '_self');
+      // Remove any existing listener by cloning (clean slate)
+      if (!a.dataset.saiFixed) {
+        a.dataset.saiFixed = '1';
+        a.addEventListener('click', function(e) {
+          var href = a.getAttribute('href');
+          if (!href || href === '#' || href.startsWith('#')) return; // allow anchor scrolling
           e.preventDefault();
           e.stopImmediatePropagation();
-          
-          const url = this.getAttribute('href');
-          if(url){
-            // Force navigation in same window
-            window.location.href = url;
-          }
-          
+          window.location.href = href;
           return false;
-        }, true); // Use capture phase
+        }, true);
       }
     });
   }
-  
-  // Run immediately
-  forceSameTab();
-  
-  // Run multiple times
-  setTimeout(forceSameTab, 50);
-  setTimeout(forceSameTab, 100);
-  setTimeout(forceSameTab, 200);
-  setTimeout(forceSameTab, 500);
-  setTimeout(forceSameTab, 1000);
-  setTimeout(forceSameTab, 2000);
-  
-  // Watch for DOM changes
-  const observer = new MutationObserver(function(){
-    forceSameTab();
+
+  // Run immediately and after every DOM change
+  interceptLinks();
+  ['DOMContentLoaded', 'load'].forEach(function(ev) {
+    window.addEventListener(ev, interceptLinks);
   });
-  
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['href', 'target']
+  new MutationObserver(interceptLinks).observe(document.documentElement, {
+    childList: true, subtree: true
   });
-  
-  // Also intercept at document level
-  document.addEventListener('click', function(e){
-    const target = e.target.closest('a');
-    if(target && target.href && target.href.includes('?go=app')){
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      window.location.href = target.href;
-      return false;
-    }
+
+  // Catch anything that slips through at document level
+  document.addEventListener('click', function(e) {
+    var a = e.target.closest('a[href]');
+    if (!a) return;
+    var href = a.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('#')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.location.href = href;
   }, true);
 })();
 </script>
@@ -923,7 +895,7 @@ a[href*="?go=app"]{
         <li>PDF &amp; DOCX export</li>
         <li>30 generations included</li>
       </ul>
-      <a class="xpbtn xps" href="?go=app">Get Started Free</a>
+      <a class="xpbtn xps" href="?go=app" target="_self">Get Started Free</a>
     </div>
     <div class="xpc xfeat xrev d2">
       <div class="xpbadge">MOST POPULAR</div>
@@ -938,7 +910,7 @@ a[href*="?go=app"]{
         <li>Unlimited generations</li>
         <li>Full session history</li>
       </ul>
-      <a class="xpbtn xpp" href="?go=app">Upgrade to Monthly</a>
+      <a class="xpbtn xpp" href="?go=app" target="_self">Upgrade to Monthly</a>
     </div>
     <div class="xpc xrev d3">
       <div class="xptier">Yearly</div>
@@ -951,7 +923,7 @@ a[href*="?go=app"]{
         <li>Priority support</li>
         <li>Unlimited generations</li>
       </ul>
-      <a class="xpbtn xps" href="?go=app">Get Yearly Access</a>
+      <a class="xpbtn xps" href="?go=app" target="_self">Get Yearly Access</a>
     </div>
   </div>
 </div>
@@ -1038,8 +1010,8 @@ a[href*="?go=app"]{
     <h2 class="xcta-title">Ready to Supercharge Your Research?</h2>
     <p class="xcta-sub">Join researchers already writing faster, smarter literature reviews with ScholarAI.</p>
     <div class="xcta-row">
-      <a class="xbtn-p" href="?go=app">Start for Free &rarr;</a>
-      <a class="xbtn-s" href="?go=app">Sign In</a>
+      <a class="xbtn-p" href="?go=app" target="_self">Start for Free &rarr;</a>
+      <a class="xbtn-s" href="?go=app" target="_self">Sign In</a>
     </div>
   </div>
 </div>
@@ -1050,11 +1022,11 @@ a[href*="?go=app"]{
     <div class="xfoot-note">AI-Powered Literature Review Generator &nbsp;&bull;&nbsp; v2.0</div>
   </div>
   <div class="xfoot-links">
-    <a href="#xfeatures">Features</a>
-    <a href="#xhow">How It Works</a>
-    <a href="#xpricing">Pricing</a>
-    <a href="?go=app">Sign In</a>
-    <a href="?go=app">Get Started</a>
+    <a href="#xfeatures" target="_self">Features</a>
+    <a href="#xhow" target="_self">How It Works</a>
+    <a href="#xpricing" target="_self">Pricing</a>
+    <a href="?go=app" target="_self">Sign In</a>
+    <a href="?go=app" target="_self">Get Started</a>
   </div>
   <div class="xfoot-note">AI draft &mdash; always review before academic submission</div>
 </div>
